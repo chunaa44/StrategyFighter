@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://dqaggljigyr2e"]
+
+[ext_resource type="Script" uid="uid://dmyvwwnshmuyp" path="res://fighter.gd" id="1_efvb3"]
+
+[node name="Fighter" type="Node2D" unique_id=237043879]
+script = ExtResource("1_efvb3")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1849655131]
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 95.0
+offset_bottom = 95.0
