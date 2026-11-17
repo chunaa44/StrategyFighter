@@ -24,8 +24,8 @@ func _ready():
 	box.add_child(title_label)
 
 	make_row(box, "Action:", ["Move", "Attack", "Block", "Grab"], action_group)
-	make_row(box, "Wheel:", ["Up", "Down", "Left", "Right"], wheel_group)
-	make_row(box, "DI:", ["Up", "Down", "Left", "Right"], di_group)
+	make_row(box, "Wheel:", Actions.DIRECTION_NAMES, wheel_group)
+	make_row(box, "DI:", ["None"] + Actions.DIRECTION_NAMES, di_group)
 
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm"
