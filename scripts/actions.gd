@@ -15,11 +15,14 @@ const DIRECTION_VECTORS = [
 
 # range is in tiles, damage in hp, everything else in ticks
 # total length of an action = startup + active + recovery
+# a turn lasts 4 ticks, so an action longer than that spills into the next turn
+# hit advantage = hitstun - recovery: positive means the attacker is free first
 const DATA = {
 	"Move": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 1, "startup": 0, "active": 1, "recovery": 0},
-	"Attack": {"damage": 10, "hitstun": 2, "knockback": 1, "range": 2, "startup": 1, "active": 1, "recovery": 2},
+	"Attack": {"damage": 25, "hitstun": 4, "knockback": 1, "range": 2, "startup": 1, "active": 1, "recovery": 3},
 	"Block": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "startup": 0, "active": 3, "recovery": 1},
-	"Grab": {"damage": 15, "hitstun": 3, "knockback": 1, "range": 1, "startup": 2, "active": 1, "recovery": 2},
+	"Grab": {"damage": 35, "hitstun": 4, "knockback": 1, "range": 1, "startup": 2, "active": 1, "recovery": 3},
+	"Wait": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "startup": 0, "active": 1, "recovery": 1},
 }
 
 

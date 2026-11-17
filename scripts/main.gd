@@ -4,37 +4,45 @@ const BOARD_WIDTH = 7
 const BOARD_HEIGHT = 3
 const TILE_SIZE = 100
 const BOARD_OFFSET = Vector2(100, 50)
-const TICKS_PER_TURN = 4
 const TICK_DELAY = 0.25
+const MAX_EVENTS = 4
+const START_TILE_1 = Vector2i(1, 1)
+const START_TILE_2 = Vector2i(5, 1)
 
 @onready var fighter1 = $Fighter1
 @onready var fighter2 = $Fighter2
+@onready var hp_label = $HpLabel
+@onready var message_label = $MessageLabel
+@onready var restart_button = $RestartButton
 
-var hp_label
-var message_label
+var event_log = PackedStringArray()
+var wait_text = ""
 
 
 func _ready():
-	fighter1.grid_position = Vector2i(1, 1)
-	fighter1.facing = 1
 	fighter1.set_color(Color.CORNFLOWER_BLUE)
-
-	fighter2.grid_position = Vector2i(5, 1)
-	fighter2.facing = -1
 	fighter2.set_color(Color.INDIAN_RED)
 
-	hp_label = Label.new()
-	hp_label.position = Vector2(100, 10)
-	add_child(hp_label)
-
-	message_label = Label.new()
-	message_label.position = Vector2(100, 380)
-	add_child(message_label)
-
-	update_fighter_positions()
-	update_hp_label()
-
+	restart_button.pressed.connect(on_restart_pressed)
 	$PickScreen.both_picked.connect(on_both_picked)
+
+	reset_match()
+	ask_for_picks()
+
+
+func reset_match():
+	fighter1.reset(START_TILE_1, 1)
+	fighter2.reset(START_TILE_2, -1)
+	event_log.clear()
+	wait_text = ""
+	update_message()
+	restart_button.visible = false
+	refresh_view()
+
+
+func on_restart_pressed():
+	reset_match()
+	ask_for_picks()
 
 
 func is_inside_board(tile):
@@ -60,8 +68,53 @@ func update_fighter_positions():
 	fighter2.position = tile_to_pixel(fighter2.grid_position)
 
 
+func refresh_view():
+	update_fighter_positions()
+	update_hp_label()
+	fighter1.update_label()
+	fighter2.update_label()
+
+
 func update_hp_label():
 	hp_label.text = "P1 HP: " + str(fighter1.hp) + "     P2 HP: " + str(fighter2.hp)
+
+
+func add_event(text):
+	event_log.append(text)
+	if event_log.size() > MAX_EVENTS:
+		event_log.remove_at(0)
+	update_message()
+
+
+func update_message():
+	var text = " | ".join(event_log)
+	if wait_text != "":
+		if text != "":
+			text += "   ||   "
+		text += wait_text
+	message_label.text = text
+
+
+func wait_note(fighter):
+	var wait = fighter.ticks_until_free()
+	if wait == 0:
+		return ""
+	if wait == 1:
+		return "acts after 1 tick"
+	return "acts after " + str(wait) + " ticks"
+
+
+func update_wait_text():
+	wait_text = ""
+	var note1 = wait_note(fighter1)
+	var note2 = wait_note(fighter2)
+	if note1 != "":
+		wait_text = "P1 " + note1
+	if note2 != "":
+		if wait_text != "":
+			wait_text += "   |   "
+		wait_text += "P2 " + note2
+	update_message()
 
 
 func _draw():
@@ -73,35 +126,59 @@ func _draw():
 			draw_rect(tile_rect, Color.WHITE, false, 2.0)
 
 
+# a fighter that already has a pick waiting is not asked again
+func ask_for_picks():
+	var need1 = fighter1.queued_pick.is_empty()
+	var need2 = fighter2.queued_pick.is_empty()
+	$PickScreen.begin_picks(need1, need2, wait_note(fighter1), wait_note(fighter2))
+
+
+# a decision is needed as soon as someone can act and has nothing queued
+func needs_decision():
+	if fighter1.queued_pick.is_empty() and fighter1.can_act_next_tick():
+		return true
+	if fighter2.queued_pick.is_empty() and fighter2.can_act_next_tick():
+		return true
+	return false
+
+
 func on_both_picked(pick1, pick2):
-	run_turn(pick1, pick2)
+	if not pick1.is_empty():
+		fighter1.queued_pick = pick1
+		fighter1.di = Actions.direction_from_name(pick1["di"])
+	if not pick2.is_empty():
+		fighter2.queued_pick = pick2
+		fighter2.di = Actions.direction_from_name(pick2["di"])
+
+	wait_text = ""
+	update_message()
+	run_until_decision()
 
 
-func run_turn(pick1, pick2):
-	$PickScreen.visible = false
-	message_label.text = ""
-
-	fighter1.queued_pick = pick1
-	fighter2.queued_pick = pick2
-	fighter1.di = Actions.direction_from_name(pick1["di"])
-	fighter2.di = Actions.direction_from_name(pick2["di"])
-
-	for tick in range(TICKS_PER_TURN):
+func run_until_decision():
+	while true:
 		resolve_tick()
-		update_fighter_positions()
-		update_hp_label()
+		refresh_view()
 		await get_tree().create_timer(TICK_DELAY).timeout
 		if fighter1.hp <= 0 or fighter2.hp <= 0:
 			break
+		if needs_decision():
+			break
 
 	if fighter1.hp <= 0 and fighter2.hp <= 0:
-		message_label.text = "Double KO"
+		end_match("Double KO")
 	elif fighter1.hp <= 0:
-		message_label.text = "P2 wins"
+		end_match("P2 wins")
 	elif fighter2.hp <= 0:
-		message_label.text = "P1 wins"
+		end_match("P1 wins")
 	else:
-		$PickScreen.visible = true
+		update_wait_text()
+		ask_for_picks()
+
+
+func end_match(text):
+	add_event(text)
+	restart_button.visible = true
 
 
 func resolve_tick():
@@ -216,6 +293,12 @@ func apply_hit(victim, action_name):
 	victim.clear_action()
 
 
+func report_result(player_name, action_name, result):
+	if result == "none":
+		return
+	add_event(player_name + " " + action_name + " " + result)
+
+
 func resolve_hits():
 	# both results are worked out before anything changes so hits are simultaneous
 	var action1 = fighter1.current_action
@@ -226,9 +309,12 @@ func resolve_hits():
 	# when an attack and a grab land on the same tick the attack wins
 	if result1 == "hit" and result2 == "hit":
 		if action1 == "Attack" and action2 == "Grab":
-			result2 = "none"
+			result2 = "beaten"
 		elif action1 == "Grab" and action2 == "Attack":
-			result1 = "none"
+			result1 = "beaten"
+
+	report_result("P1", action1, result1)
+	report_result("P2", action2, result2)
 
 	var target1 = fighter1.grid_position
 	var target2 = fighter2.grid_position

@@ -5,6 +5,8 @@ signal both_picked(pick1, pick2)
 var current_player = 1
 var pick1 = {}
 var pick2 = {}
+var needs = [true, true]
+var notes = ["", ""]
 
 var action_group = ButtonGroup.new()
 var wheel_group = ButtonGroup.new()
@@ -23,7 +25,7 @@ func _ready():
 	title_label = Label.new()
 	box.add_child(title_label)
 
-	make_row(box, "Action:", ["Move", "Attack", "Block", "Grab"], action_group)
+	make_row(box, "Action:", ["Move", "Attack", "Block", "Grab", "Wait"], action_group)
 	make_row(box, "Wheel:", Actions.DIRECTION_NAMES, wheel_group)
 	make_row(box, "DI:", ["None"] + Actions.DIRECTION_NAMES, di_group)
 
@@ -31,8 +33,6 @@ func _ready():
 	confirm_button.text = "Confirm"
 	confirm_button.pressed.connect(on_confirm_pressed)
 	box.add_child(confirm_button)
-
-	start_player_turn(1)
 
 
 func make_row(parent, row_name, options, group):
@@ -59,10 +59,32 @@ func reset_selection():
 	di_group.get_buttons()[0].button_pressed = true
 
 
+# only the players who need to choose are asked, the others keep their queued pick
+func begin_picks(need1, need2, note1, note2):
+	needs = [need1, need2]
+	notes = [note1, note2]
+	pick1 = {}
+	pick2 = {}
+	visible = true
+	if need1:
+		start_player_turn(1)
+	else:
+		start_player_turn(2)
+
+
 func start_player_turn(player_number):
 	current_player = player_number
-	title_label.text = "Player " + str(player_number) + ": choose, then press Confirm"
+	var title = "Player " + str(player_number) + ": choose, then press Confirm"
+	var note = notes[player_number - 1]
+	if note != "":
+		title += "   (" + note + ")"
+	title_label.text = title
 	reset_selection()
+
+
+func finish_picks():
+	visible = false
+	both_picked.emit(pick1, pick2)
 
 
 func on_confirm_pressed():
@@ -73,8 +95,10 @@ func on_confirm_pressed():
 
 	if current_player == 1:
 		pick1 = pick
-		start_player_turn(2)
+		if needs[1]:
+			start_player_turn(2)
+		else:
+			finish_picks()
 	else:
 		pick2 = pick
-		both_picked.emit(pick1, pick2)
-		start_player_turn(1)
+		finish_picks()
