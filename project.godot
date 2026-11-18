@@ -21,6 +21,7 @@ Actions="*uid://b2qt6kl4nwmjd"
 
 [display]
 
+window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

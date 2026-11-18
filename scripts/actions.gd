@@ -13,16 +13,20 @@ const DIRECTION_VECTORS = [
 	Vector2i(-1, -1),
 ]
 
-# range is in tiles, damage in hp, everything else in ticks
+# damage in hp, slide and range in tiles, everything else in ticks
+# slide: tiles travelled along the aim on the active tick, it stops next to the opponent
+# range: how far the hit reaches from where the fighter stands after sliding
 # total length of an action = startup + active + recovery
 # a turn lasts 4 ticks, so an action longer than that spills into the next turn
 # hit advantage = hitstun - recovery: positive means the attacker is free first
 const DATA = {
-	"Move": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 1, "startup": 0, "active": 1, "recovery": 0},
-	"Attack": {"damage": 25, "hitstun": 4, "knockback": 1, "range": 2, "startup": 1, "active": 1, "recovery": 3},
-	"Block": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "startup": 0, "active": 3, "recovery": 1},
-	"Grab": {"damage": 35, "hitstun": 4, "knockback": 1, "range": 1, "startup": 2, "active": 1, "recovery": 3},
-	"Wait": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "startup": 0, "active": 1, "recovery": 1},
+	"Move": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "slide": 1, "startup": 0, "active": 1, "recovery": 0},
+	"Dash": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "slide": 2, "startup": 2, "active": 1, "recovery": 1},
+	"Jab": {"damage": 12, "hitstun": 2, "knockback": 1, "range": 1, "slide": 0, "startup": 1, "active": 1, "recovery": 1},
+	"Lunge": {"damage": 40, "hitstun": 5, "knockback": 2, "range": 1, "slide": 3, "startup": 2, "active": 1, "recovery": 4},
+	"Block": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "slide": 0, "startup": 0, "active": 3, "recovery": 1},
+	"Grab": {"damage": 30, "hitstun": 4, "knockback": 1, "range": 1, "slide": 0, "startup": 2, "active": 1, "recovery": 3},
+	"Wait": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "slide": 0, "startup": 0, "active": 1, "recovery": 1},
 }
 
 # added on top of the hit when knockback pushes a fighter into the edge of the board
@@ -45,7 +49,28 @@ func total_ticks(action_name):
 	return data["startup"] + data["active"] + data["recovery"]
 
 
+# strikes can be blocked and beat a grab that lands on the same tick
+func is_strike(action_name):
+	return action_name == "Jab" or action_name == "Lunge"
+
+
+# dash and lunge look the same until they become active
+func is_rush(action_name):
+	return action_name == "Dash" or action_name == "Lunge"
+
+
 # a block covers the direction it faces plus the two neighbours
 func is_guarded(guard_direction, from_direction):
 	var diff = absi(direction_index(guard_direction) - direction_index(from_direction))
 	return diff == 0 or diff == 1 or diff == 7
+
+
+# every tile after start up to and including target, target lies on a straight line from start
+func path_tiles(start, target):
+	var tiles = []
+	var delta = target - start
+	var step = Vector2i(signi(delta.x), signi(delta.y))
+	var count = maxi(absi(delta.x), absi(delta.y))
+	for i in range(1, count + 1):
+		tiles.append(start + step * i)
+	return tiles

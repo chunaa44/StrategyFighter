@@ -62,6 +62,9 @@ func start_action(pick):
 	current_action = pick["action"]
 	action_tick = 0
 	aim = Actions.direction_from_name(pick["wheel"])
+	# waiting returns to the idle pose, so no direction is kept
+	if current_action == "Wait":
+		aim = Vector2i(0, 0)
 
 
 func clear_action():
@@ -82,13 +85,15 @@ func is_guarding():
 	return current_action == "Block" and in_active_frames()
 
 
+# dash and lunge share a label so the opponent cannot tell them apart, wait shows the idle pose
 func update_label():
 	if stunned or hitstun_ticks > 0:
 		status_label.text = "Stunned"
-	elif current_action == "Wait":
-		status_label.text = "Wait"
-	elif current_action != "none":
-		var direction_name = Actions.DIRECTION_NAMES[Actions.direction_index(aim)]
-		status_label.text = current_action + "\n" + direction_name
-	else:
+	elif current_action == "none" or current_action == "Wait":
 		status_label.text = ""
+	else:
+		var action_text = current_action
+		if Actions.is_rush(current_action):
+			action_text = "Rush"
+		var direction_name = Actions.DIRECTION_NAMES[Actions.direction_index(aim)]
+		status_label.text = action_text + "\n" + direction_name

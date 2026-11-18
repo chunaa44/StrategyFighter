@@ -1,13 +1,13 @@
 extends Node2D
 
-const BOARD_WIDTH = 7
-const BOARD_HEIGHT = 3
-const TILE_SIZE = 100
+const BOARD_WIDTH = 9
+const BOARD_HEIGHT = 5
+const TILE_SIZE = 80
 const BOARD_OFFSET = Vector2(100, 50)
 const TICK_DELAY = 0.25
 const MAX_EVENTS = 4
-const START_TILE_1 = Vector2i(1, 1)
-const START_TILE_2 = Vector2i(5, 1)
+const START_TILE_1 = Vector2i(1, 2)
+const START_TILE_2 = Vector2i(7, 2)
 
 @onready var fighter1 = $Fighter1
 @onready var fighter2 = $Fighter2
@@ -243,16 +243,61 @@ func update_facing():
 		fighter2.facing = 1
 
 
-func resolve_moves():
-	var target1 = fighter1.grid_position
-	var target2 = fighter2.grid_position
+# where a fighter ends up if it slides this tick: it stops at the board edge
+# and in front of the opponent's current tile
+func move_target(fighter, other):
+	var tile = fighter.grid_position
+	if fighter.current_action == "none":
+		return tile
+	var slide = Actions.DATA[fighter.current_action]["slide"]
+	if slide == 0 or not fighter.in_active_frames():
+		return tile
 
-	if fighter1.current_action == "Move" and fighter1.in_active_frames():
-		target1 = fighter1.grid_position + fighter1.aim * Actions.DATA["Move"]["range"]
-	if fighter2.current_action == "Move" and fighter2.in_active_frames():
-		target2 = fighter2.grid_position + fighter2.aim * Actions.DATA["Move"]["range"]
+	for step in range(slide):
+		var next_tile = tile + fighter.aim
+		if not is_inside_board(next_tile):
+			break
+		if next_tile == other.grid_position:
+			break
+		tile = next_tile
+	return tile
+
+
+# two slides that touch the same tile cancel each other
+func paths_clash(start1, target1, start2, target2):
+	if target1 == start1 or target2 == start2:
+		return false
+
+	var path2 = Actions.path_tiles(start2, target2)
+	for tile in Actions.path_tiles(start1, target1):
+		if path2.has(tile):
+			return true
+	return false
+
+
+func show_slide(fighter, start_tile):
+	if not Actions.is_rush(fighter.current_action):
+		return
+	if not fighter.in_active_frames():
+		return
+	effects.show_slide(start_tile, fighter.grid_position, fighter.current_action)
+
+
+func resolve_moves():
+	var start1 = fighter1.grid_position
+	var start2 = fighter2.grid_position
+	var target1 = move_target(fighter1, fighter2)
+	var target2 = move_target(fighter2, fighter1)
+
+	if paths_clash(start1, target1, start2, target2):
+		effects.show_clash(start1, start2)
+		target1 = start1
+		target2 = start2
 
 	settle_positions(target1, target2)
+
+	show_slide(fighter1, start1)
+	show_slide(fighter2, start2)
 
 
 # applies the position rules shared by moves, knockback and DI
@@ -287,15 +332,16 @@ func is_in_reach(attacker, defender):
 
 # returns "none", "whiff", "blocked" or "hit"
 func get_attack_result(attacker, defender):
-	if attacker.current_action != "Attack" and attacker.current_action != "Grab":
+	var action = attacker.current_action
+	if not Actions.is_strike(action) and action != "Grab":
 		return "none"
 	if not attacker.in_active_frames():
 		return "none"
 	if not is_in_reach(attacker, defender):
 		return "whiff"
 
-	# only attacks can be blocked, grabs go through
-	if attacker.current_action == "Attack" and defender.is_guarding():
+	# only strikes can be blocked, grabs go through
+	if Actions.is_strike(action) and defender.is_guarding():
 		var from_direction = attacker.aim * -1
 		if Actions.is_guarded(defender.aim, from_direction):
 			return "blocked"
@@ -303,12 +349,29 @@ func get_attack_result(attacker, defender):
 	return "hit"
 
 
-# the board edge a landed hit would push the defender into, (0, 0) when there is none
+# the defender is pushed away from the attacker one tile at a time and stops at the board edge
+func get_knockback_landing(attacker, defender, action_name):
+	var tile = defender.grid_position
+	for step in range(Actions.DATA[action_name]["knockback"]):
+		var next_tile = tile + attacker.aim
+		if not is_inside_board(next_tile):
+			break
+		tile = next_tile
+	return tile
+
+
+# the board edge a landed hit pushes the defender into, (0, 0) when the push is not stopped
 func get_slam_side(attacker, defender, action_name, result):
 	if result != "hit":
 		return Vector2i(0, 0)
-	var landing = defender.grid_position + attacker.aim * Actions.DATA[action_name]["knockback"]
-	return wall_side(landing)
+
+	var tile = defender.grid_position
+	for step in range(Actions.DATA[action_name]["knockback"]):
+		var next_tile = tile + attacker.aim
+		if not is_inside_board(next_tile):
+			return wall_side(next_tile)
+		tile = next_tile
+	return Vector2i(0, 0)
 
 
 func apply_hit(victim, action_name, slam_side):
@@ -346,11 +409,11 @@ func resolve_hits():
 	var result1 = get_attack_result(fighter1, fighter2)
 	var result2 = get_attack_result(fighter2, fighter1)
 
-	# when an attack and a grab land on the same tick the attack wins
+	# when a strike and a grab land on the same tick the strike wins
 	if result1 == "hit" and result2 == "hit":
-		if action1 == "Attack" and action2 == "Grab":
+		if Actions.is_strike(action1) and action2 == "Grab":
 			result2 = "beaten"
-		elif action1 == "Grab" and action2 == "Attack":
+		elif action1 == "Grab" and Actions.is_strike(action2):
 			result1 = "beaten"
 
 	# a hit by fighter 1 slams fighter 2 and the other way round
@@ -371,9 +434,9 @@ func resolve_hits():
 	var target1 = fighter1.grid_position
 	var target2 = fighter2.grid_position
 	if result1 == "hit":
-		target2 += fighter1.aim * Actions.DATA[action1]["knockback"]
+		target2 = get_knockback_landing(fighter1, fighter2, action1)
 	if result2 == "hit":
-		target1 += fighter2.aim * Actions.DATA[action2]["knockback"]
+		target1 = get_knockback_landing(fighter2, fighter1, action2)
 
 	if result1 == "hit":
 		apply_hit(fighter2, action1, slam_on_2)

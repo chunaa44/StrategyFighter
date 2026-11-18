@@ -5,6 +5,7 @@ const GRAB_COLOR = Color(1.0, 0.65, 0.1)
 const GUARD_COLOR = Color(0.3, 0.8, 1.0)
 const IMPACT_COLOR = Color(1.0, 1.0, 1.0)
 const SLAM_COLOR = Color(1.0, 0.9, 0.2)
+const DASH_COLOR = Color(0.75, 0.85, 1.0)
 
 const TEXT_TIME = 0.6
 const TEXT_RISE = 30.0
@@ -59,7 +60,7 @@ func action_color(action_name):
 	return ATTACK_COLOR
 
 
-# tiles an attack or grab covers, limited to the board
+# tiles a strike or grab covers, limited to the board
 func reach_tiles(fighter):
 	var tiles = []
 	var reach = Actions.DATA[fighter.current_action]["range"]
@@ -91,6 +92,22 @@ func add_text(tile, text, color, offset = Vector2(0.0, 0.0)):
 func show_guard(fighter):
 	if fighter.is_guarding():
 		add_guard_mark(fighter.grid_position, fighter.aim, GUARD_COLOR)
+
+
+# the tiles a dash or lunge travelled over on its active tick
+func show_slide(from_tile, to_tile, action_name):
+	if from_tile == to_tile:
+		return
+	var color = DASH_COLOR
+	if action_name == "Lunge":
+		color = ATTACK_COLOR
+	add_tiles(Actions.path_tiles(from_tile, to_tile), color)
+
+
+# two slides that touched the same tile and cancelled each other
+func show_clash(tile1, tile2):
+	add_text(tile1, "Clash", IMPACT_COLOR)
+	add_text(tile2, "Clash", IMPACT_COLOR)
 
 
 # called every tick for each attacker, before knockback moves anyone

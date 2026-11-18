@@ -17,7 +17,7 @@ var confirm_button
 
 
 func _ready():
-	position = Vector2(100, 380)
+	position = Vector2(100, 490)
 
 	var box = VBoxContainer.new()
 	add_child(box)
@@ -25,7 +25,7 @@ func _ready():
 	title_label = Label.new()
 	box.add_child(title_label)
 
-	make_row(box, "Action:", ["Move", "Attack", "Block", "Grab", "Wait"], action_group)
+	make_row(box, "Action:", ["Move", "Dash", "Jab", "Lunge", "Block", "Grab", "Wait"], action_group)
 	make_row(box, "Wheel:", Actions.DIRECTION_NAMES, wheel_group)
 	make_row(box, "DI:", ["None"] + Actions.DIRECTION_NAMES, di_group)
 

@@ -8,8 +8,8 @@ script = ExtResource("1_efvb3")
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1849655131]
 offset_left = 5.0
 offset_top = 5.0
-offset_right = 95.0
-offset_bottom = 95.0
+offset_right = 75.0
+offset_bottom = 75.0
 
 [node name="StatusLabel" type="Label" parent="." unique_id=559029034]
 offset_left = 8.0
