@@ -11,6 +11,7 @@ const START_TILE_2 = Vector2i(5, 1)
 
 @onready var fighter1 = $Fighter1
 @onready var fighter2 = $Fighter2
+@onready var effects = $Effects
 @onready var hp_label = $HpLabel
 @onready var message_label = $MessageLabel
 @onready var restart_button = $RestartButton
@@ -23,6 +24,8 @@ func _ready():
 	fighter1.set_color(Color.CORNFLOWER_BLUE)
 	fighter2.set_color(Color.INDIAN_RED)
 
+	effects.setup(self)
+
 	restart_button.pressed.connect(on_restart_pressed)
 	$PickScreen.both_picked.connect(on_both_picked)
 
@@ -33,6 +36,7 @@ func _ready():
 func reset_match():
 	fighter1.reset(START_TILE_1, 1)
 	fighter2.reset(START_TILE_2, -1)
+	effects.clear()
 	event_log.clear()
 	wait_text = ""
 	update_message()
@@ -160,6 +164,7 @@ func run_until_decision():
 		resolve_tick()
 		refresh_view()
 		await get_tree().create_timer(TICK_DELAY).timeout
+		effects.clear_tick()
 		if fighter1.hp <= 0 or fighter2.hp <= 0:
 			break
 		if needs_decision():
@@ -315,6 +320,12 @@ func resolve_hits():
 
 	report_result("P1", action1, result1)
 	report_result("P2", action2, result2)
+
+	# effects read positions and actions before hits clear them or knockback moves anyone
+	effects.show_guard(fighter1)
+	effects.show_guard(fighter2)
+	effects.show_result(fighter1, fighter2, action1, result1)
+	effects.show_result(fighter2, fighter1, action2, result2)
 
 	var target1 = fighter1.grid_position
 	var target2 = fighter2.grid_position

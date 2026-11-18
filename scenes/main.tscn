@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bqthpgbln05s3" path="res://scripts/main.gd" id="1_sugp2"]
 [ext_resource type="PackedScene" uid="uid://dqaggljigyr2e" path="res://scenes/fighter.tscn" id="2_jyhfs"]
+[ext_resource type="Script" uid="uid://cppwjj4kgs3xg" path="res://scripts/effects_layer.gd" id="3_jyhfs"]
 [ext_resource type="Script" uid="uid://bwq6ih3yot0c3" path="res://scripts/pick_screen.gd" id="3_tbgi4"]
 
 [node name="Main" type="Node2D" unique_id=1245673489]
@@ -10,6 +11,9 @@ script = ExtResource("1_sugp2")
 [node name="Fighter1" parent="." unique_id=237043879 instance=ExtResource("2_jyhfs")]
 
 [node name="Fighter2" parent="." unique_id=637751484 instance=ExtResource("2_jyhfs")]
+
+[node name="Effects" type="Node2D" parent="." unique_id=872093233]
+script = ExtResource("3_jyhfs")
 
 [node name="PickScreen" type="Control" parent="." unique_id=1977171628]
 layout_mode = 3
