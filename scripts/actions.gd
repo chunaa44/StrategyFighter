@@ -25,6 +25,9 @@ const DATA = {
 	"Wait": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "startup": 0, "active": 1, "recovery": 1},
 }
 
+# added on top of the hit when knockback pushes a fighter into the edge of the board
+const WALL_SLAM = {"damage": 10, "hitstun": 1}
+
 
 func direction_from_name(direction_name):
 	if direction_name == "None":

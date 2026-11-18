@@ -4,14 +4,17 @@ const ATTACK_COLOR = Color(1.0, 0.25, 0.2)
 const GRAB_COLOR = Color(1.0, 0.65, 0.1)
 const GUARD_COLOR = Color(0.3, 0.8, 1.0)
 const IMPACT_COLOR = Color(1.0, 1.0, 1.0)
+const SLAM_COLOR = Color(1.0, 0.9, 0.2)
 
 const TEXT_TIME = 0.6
 const TEXT_RISE = 30.0
 const TEXT_WIDTH = 100.0
 const TEXT_SIZE = 22
+const SLAM_TEXT_OFFSET = Vector2(0.0, -26.0)
 
 const GUARD_INSET = 5.0
 const GUARD_WIDTH = 6.0
+const WALL_WIDTH = 8.0
 
 # marks live for one tick, texts fade out on their own timer
 var marks = []
@@ -75,8 +78,12 @@ func add_guard_mark(tile, aim, color):
 	marks.append({"kind": "guard", "tile": tile, "aim": aim, "color": color})
 
 
-func add_text(tile, text, color):
-	var pos = tile_center(tile) + Vector2(-TEXT_WIDTH / 2.0, -10.0)
+func add_wall_mark(tile, side, color):
+	marks.append({"kind": "wall", "tile": tile, "side": side, "color": color})
+
+
+func add_text(tile, text, color, offset = Vector2(0.0, 0.0)):
+	var pos = tile_center(tile) + Vector2(-TEXT_WIDTH / 2.0, -10.0) + offset
 	texts.append({"pos": pos, "text": text, "color": color, "age": 0.0})
 
 
@@ -87,7 +94,8 @@ func show_guard(fighter):
 
 
 # called every tick for each attacker, before knockback moves anyone
-func show_result(attacker, defender, action_name, result):
+# slam_side is the board edge the defender is thrown into, (0, 0) when there is none
+func show_result(attacker, defender, action_name, result, slam_side):
 	if result == "none":
 		return
 
@@ -105,6 +113,9 @@ func show_result(attacker, defender, action_name, result):
 	elif result == "hit":
 		add_tiles([defender.grid_position], IMPACT_COLOR)
 		add_text(defender.grid_position, "-" + str(Actions.DATA[action_name]["damage"]), color)
+		if slam_side != Vector2i(0, 0):
+			add_wall_mark(defender.grid_position, slam_side, SLAM_COLOR)
+			add_text(defender.grid_position, "Wall -" + str(Actions.WALL_SLAM["damage"]), SLAM_COLOR, SLAM_TEXT_OFFSET)
 
 
 func _draw():
@@ -114,8 +125,10 @@ func _draw():
 	for mark in marks:
 		if mark["kind"] == "tiles":
 			draw_tiles(mark["tiles"], mark["color"])
-		else:
+		elif mark["kind"] == "guard":
 			draw_guard_sides(mark["tile"], mark["aim"], mark["color"])
+		else:
+			draw_wall_edges(mark["tile"], mark["side"], mark["color"])
 
 	for text in texts:
 		draw_floating_text(text)
@@ -127,6 +140,21 @@ func draw_tiles(tiles, color):
 		var rect = tile_rect(tile)
 		draw_rect(rect, fill, true)
 		draw_rect(rect.grow(-3), color, false, 3.0)
+
+
+# the full tile edge on each side of the board the fighter was thrown into
+func draw_wall_edges(tile, side, color):
+	var rect = tile_rect(tile)
+	if side.x != 0:
+		var edge_x = rect.position.x
+		if side.x > 0:
+			edge_x = rect.end.x
+		draw_line(Vector2(edge_x, rect.position.y), Vector2(edge_x, rect.end.y), color, WALL_WIDTH)
+	if side.y != 0:
+		var edge_y = rect.position.y
+		if side.y > 0:
+			edge_y = rect.end.y
+		draw_line(Vector2(rect.position.x, edge_y), Vector2(rect.end.x, edge_y), color, WALL_WIDTH)
 
 
 # the three guarded directions are drawn as one unbroken run along the tile border

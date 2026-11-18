@@ -61,6 +61,20 @@ func is_inside_board(tile):
 	return true
 
 
+# which board edges a tile lies beyond: -1 or 1 per axis, 0 when inside on that axis
+func wall_side(tile):
+	var side = Vector2i(0, 0)
+	if tile.x < 0:
+		side.x = -1
+	elif tile.x >= BOARD_WIDTH:
+		side.x = 1
+	if tile.y < 0:
+		side.y = -1
+	elif tile.y >= BOARD_HEIGHT:
+		side.y = 1
+	return side
+
+
 func tile_to_pixel(tile):
 	var pixel_x = BOARD_OFFSET.x + tile.x * TILE_SIZE
 	var pixel_y = BOARD_OFFSET.y + tile.y * TILE_SIZE
@@ -289,12 +303,27 @@ func get_attack_result(attacker, defender):
 	return "hit"
 
 
-func apply_hit(victim, action_name):
+# the board edge a landed hit would push the defender into, (0, 0) when there is none
+func get_slam_side(attacker, defender, action_name, result):
+	if result != "hit":
+		return Vector2i(0, 0)
+	var landing = defender.grid_position + attacker.aim * Actions.DATA[action_name]["knockback"]
+	return wall_side(landing)
+
+
+func apply_hit(victim, action_name, slam_side):
 	var data = Actions.DATA[action_name]
-	victim.hp -= data["damage"]
+	var damage = data["damage"]
+	var hitstun = data["hitstun"]
+
+	if slam_side != Vector2i(0, 0):
+		damage += Actions.WALL_SLAM["damage"]
+		hitstun += Actions.WALL_SLAM["hitstun"]
+
+	victim.hp -= damage
 	if victim.hp < 0:
 		victim.hp = 0
-	victim.hitstun_ticks = data["hitstun"]
+	victim.hitstun_ticks = hitstun
 	victim.clear_action()
 
 
@@ -302,6 +331,12 @@ func report_result(player_name, action_name, result):
 	if result == "none":
 		return
 	add_event(player_name + " " + action_name + " " + result)
+
+
+func report_slam(victim_name, slam_side):
+	if slam_side == Vector2i(0, 0):
+		return
+	add_event(victim_name + " wall slam")
 
 
 func resolve_hits():
@@ -318,14 +353,20 @@ func resolve_hits():
 		elif action1 == "Grab" and action2 == "Attack":
 			result1 = "beaten"
 
+	# a hit by fighter 1 slams fighter 2 and the other way round
+	var slam_on_2 = get_slam_side(fighter1, fighter2, action1, result1)
+	var slam_on_1 = get_slam_side(fighter2, fighter1, action2, result2)
+
 	report_result("P1", action1, result1)
 	report_result("P2", action2, result2)
+	report_slam("P2", slam_on_2)
+	report_slam("P1", slam_on_1)
 
 	# effects read positions and actions before hits clear them or knockback moves anyone
 	effects.show_guard(fighter1)
 	effects.show_guard(fighter2)
-	effects.show_result(fighter1, fighter2, action1, result1)
-	effects.show_result(fighter2, fighter1, action2, result2)
+	effects.show_result(fighter1, fighter2, action1, result1, slam_on_2)
+	effects.show_result(fighter2, fighter1, action2, result2, slam_on_1)
 
 	var target1 = fighter1.grid_position
 	var target2 = fighter2.grid_position
@@ -335,9 +376,9 @@ func resolve_hits():
 		target1 += fighter2.aim * Actions.DATA[action2]["knockback"]
 
 	if result1 == "hit":
-		apply_hit(fighter2, action1)
+		apply_hit(fighter2, action1, slam_on_2)
 	if result2 == "hit":
-		apply_hit(fighter1, action2)
+		apply_hit(fighter1, action2, slam_on_1)
 
 	# knockback first, then DI from wherever the fighter landed
 	settle_positions(target1, target2)
