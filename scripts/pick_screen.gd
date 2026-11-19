@@ -6,6 +6,7 @@ const DirectionWheel = preload("res://scripts/direction_wheel.gd")
 
 const BOX_POSITION = Vector2(100, 490)
 const WHEEL_POSITION = Vector2(900, 120)
+const TITLE_SIZE = 16
 
 var current_player = 1
 var pick1 = {}
@@ -26,6 +27,7 @@ func _ready():
 	add_child(box)
 
 	title_label = Label.new()
+	title_label.add_theme_font_size_override("font_size", TITLE_SIZE)
 	box.add_child(title_label)
 
 	make_row(box, "Action:", ["Move", "Dash", "Jab", "Lunge", "Block", "Grab", "Wait"], action_group)
@@ -46,7 +48,7 @@ func make_row(parent, row_name, options, group):
 
 	var label = Label.new()
 	label.text = row_name
-	label.custom_minimum_size = Vector2(80, 0)
+	label.custom_minimum_size = Vector2(130, 0)
 	row.add_child(label)
 
 	for option in options:

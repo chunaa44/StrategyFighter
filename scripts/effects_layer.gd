@@ -8,8 +8,8 @@ const DASH_COLOR = Color(0.75, 0.85, 1.0)
 
 const TEXT_TIME = 0.6
 const TEXT_RISE = 30.0
-const TEXT_WIDTH = 100.0
-const TEXT_SIZE = 22
+const TEXT_WIDTH = 140.0
+const TEXT_SIZE = 16
 
 const GUARD_INSET = 5.0
 const GUARD_WIDTH = 6.0
@@ -55,6 +55,14 @@ func action_color(action_name):
 	if action_name == "Grab":
 		return GRAB_COLOR
 	return ATTACK_COLOR
+
+
+# same font the project theme gives to every Control
+func pixel_font():
+	var project_theme = ThemeDB.get_project_theme()
+	if project_theme != null and project_theme.default_font != null:
+		return project_theme.default_font
+	return ThemeDB.fallback_font
 
 
 # tiles a strike or grab covers, limited to the board
@@ -188,6 +196,6 @@ func guard_points(rect, direction):
 func draw_floating_text(text):
 	var fade = 1.0 - text["age"] / TEXT_TIME
 	var pos = text["pos"] + Vector2(0.0, -TEXT_RISE * text["age"] / TEXT_TIME)
-	var font = ThemeDB.fallback_font
+	var font = pixel_font()
 	draw_string_outline(font, pos, text["text"], HORIZONTAL_ALIGNMENT_CENTER, TEXT_WIDTH, TEXT_SIZE, 4, Color(0, 0, 0, fade))
 	draw_string(font, pos, text["text"], HORIZONTAL_ALIGNMENT_CENTER, TEXT_WIDTH, TEXT_SIZE, Color(text["color"], fade))

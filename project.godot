@@ -21,9 +21,14 @@ Actions="*uid://b2qt6kl4nwmjd"
 
 [display]
 
+window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[gui]
+
+theme/custom="uid://crnibcn68yep2"
 
 [physics]
 

@@ -1,30 +1,25 @@
 extends Control
 
-# one wheel cell is drawn as a PIXEL x PIXEL square
-const RADIUS = 14
+# the wheel is drawn on a small grid, one cell is a PIXEL x PIXEL square
+const RADIUS = 12
 const PIXEL = 6
-const DEAD_ZONE = 3.5
-const GAP = 0.7
+const DEAD_ZONE = 2.5
+const MARKER_DISTANCE = 8.0
 const LABEL_HEIGHT = 28
-const LABEL_SIZE = 18
+const LABEL_SIZE = 16
 
 const COLOR_RING = Color(0.85, 0.85, 0.9)
-const COLOR_CENTER = Color(0.12, 0.12, 0.16)
-const COLOR_SECTOR_A = Color(0.24, 0.26, 0.34)
-const COLOR_SECTOR_B = Color(0.3, 0.32, 0.42)
-const COLOR_HOVER = Color(0.45, 0.55, 0.8)
+const COLOR_DISC = Color(0.12, 0.12, 0.16)
+const COLOR_MARKER = Color(0.45, 0.47, 0.58)
 const COLOR_SELECTED = Color(0.95, 0.75, 0.2)
-const COLOR_NEEDLE = Color(1.0, 1.0, 1.0)
 
 var selected = 0
-var hover = -1
 
 
 func _ready():
 	var cells = RADIUS * 2 + 1
 	custom_minimum_size = Vector2(cells * PIXEL, cells * PIXEL + LABEL_HEIGHT)
 	size = custom_minimum_size
-	mouse_exited.connect(on_mouse_exited)
 
 
 func select(index):
@@ -39,24 +34,10 @@ func get_direction_name():
 func _gui_input(event):
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			pick_at(event.position)
-	elif event is InputEventMouseMotion:
-		hover = sector_at(event.position)
-		if event.button_mask & MOUSE_BUTTON_MASK_LEFT:
-			pick_at(event.position)
-		queue_redraw()
-
-
-func on_mouse_exited():
-	hover = -1
-	queue_redraw()
-
-
-func pick_at(pixel_position):
-	var index = sector_at(pixel_position)
-	if index != -1:
-		selected = index
-		queue_redraw()
+			var index = sector_at(event.position)
+			if index != -1:
+				selected = index
+				queue_redraw()
 
 
 # -1 when the point is outside the wheel or on the dead centre
@@ -66,66 +47,54 @@ func sector_at(pixel_position):
 	var dist = offset.length()
 	if dist > RADIUS + 0.5 or dist < DEAD_ZONE:
 		return -1
-	return sector_of_offset(offset)
-
-
-# sectors start at Up and go clockwise, same order as Actions.DIRECTION_NAMES
-func sector_of_offset(offset):
+	# sectors start at Up and go clockwise, same order as Actions.DIRECTION_NAMES
 	var f = atan2(offset.x, -offset.y) / (PI / 4.0)
 	return posmod(roundi(f), 8)
 
 
-# cells on the line from the centre towards the selected direction
-func needle_cells():
-	var cells = {}
-	var direction = Actions.DIRECTION_VECTORS[selected]
-	for step in range(0, RADIUS):
-		var cell = direction * step
-		if Vector2(cell).length() > RADIUS - 1.5:
-			break
-		cells[cell] = true
-	return cells
+# grid cell of a direction marker, relative to the centre cell
+func marker_cell(index):
+	var direction = Vector2(Actions.DIRECTION_VECTORS[index]).normalized()
+	return Vector2i((direction * MARKER_DISTANCE).round())
 
 
-# null means the cell is left empty
-func cell_color(offset, dist, needle):
-	if dist > RADIUS - 0.5:
-		return COLOR_RING
-	if needle.has(Vector2i(offset)):
-		return COLOR_NEEDLE
-	if dist < DEAD_ZONE:
-		return COLOR_CENTER
+# cell is relative to the centre cell
+func draw_cell(cell, color):
+	var origin = (Vector2(RADIUS, RADIUS) + Vector2(cell)) * PIXEL
+	draw_rect(Rect2(origin, Vector2(PIXEL, PIXEL)), color, true)
 
-	var f = atan2(offset.x, -offset.y) / (PI / 4.0)
-	var edge_distance = (0.5 - absf(f - roundf(f))) * (PI / 4.0) * dist
-	if edge_distance < GAP:
-		return null
 
-	var index = posmod(roundi(f), 8)
-	if index == selected:
-		return COLOR_SELECTED
-	if index == hover:
-		return COLOR_HOVER
-	if index % 2 == 0:
-		return COLOR_SECTOR_A
-	return COLOR_SECTOR_B
+func draw_marker(cell, color):
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			draw_cell(cell + Vector2i(dx, dy), color)
 
 
 func _draw():
-	var cells = RADIUS * 2 + 1
-	var needle = needle_cells()
-
-	for cy in range(cells):
-		for cx in range(cells):
-			var offset = Vector2(cx - RADIUS, cy - RADIUS)
-			var dist = offset.length()
+	for cy in range(RADIUS * 2 + 1):
+		for cx in range(RADIUS * 2 + 1):
+			var cell = Vector2i(cx - RADIUS, cy - RADIUS)
+			var dist = Vector2(cell).length()
 			if dist > RADIUS + 0.5:
 				continue
-			var color = cell_color(offset, dist, needle)
-			if color == null:
-				continue
-			draw_rect(Rect2(Vector2(cx, cy) * PIXEL, Vector2(PIXEL, PIXEL)), color, true)
+			if dist > RADIUS - 0.8:
+				draw_cell(cell, COLOR_RING)
+			else:
+				draw_cell(cell, COLOR_DISC)
 
-	var font = ThemeDB.fallback_font
-	var label_position = Vector2(0, cells * PIXEL + LABEL_SIZE)
-	draw_string(font, label_position, get_direction_name(), HORIZONTAL_ALIGNMENT_CENTER, cells * PIXEL, LABEL_SIZE, Color.WHITE)
+	# line from the centre to the selected marker
+	var direction = Actions.DIRECTION_VECTORS[selected]
+	var target = marker_cell(selected)
+	var length = maxi(absi(target.x), absi(target.y))
+	for step in range(0, length + 1):
+		draw_cell(direction * step, COLOR_SELECTED)
+
+	for i in range(8):
+		if i != selected:
+			draw_marker(marker_cell(i), COLOR_MARKER)
+	draw_marker(target, COLOR_SELECTED)
+
+	var font = get_theme_default_font()
+	var width = (RADIUS * 2 + 1) * PIXEL
+	var label_position = Vector2(0, width + LABEL_SIZE)
+	draw_string(font, label_position, get_direction_name(), HORIZONTAL_ALIGNMENT_CENTER, width, LABEL_SIZE, Color.WHITE)
