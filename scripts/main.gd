@@ -61,20 +61,6 @@ func is_inside_board(tile):
 	return true
 
 
-# which board edges a tile lies beyond: -1 or 1 per axis, 0 when inside on that axis
-func wall_side(tile):
-	var side = Vector2i(0, 0)
-	if tile.x < 0:
-		side.x = -1
-	elif tile.x >= BOARD_WIDTH:
-		side.x = 1
-	if tile.y < 0:
-		side.y = -1
-	elif tile.y >= BOARD_HEIGHT:
-		side.y = 1
-	return side
-
-
 func tile_to_pixel(tile):
 	var pixel_x = BOARD_OFFSET.x + tile.x * TILE_SIZE
 	var pixel_y = BOARD_OFFSET.y + tile.y * TILE_SIZE
@@ -163,10 +149,8 @@ func needs_decision():
 func on_both_picked(pick1, pick2):
 	if not pick1.is_empty():
 		fighter1.queued_pick = pick1
-		fighter1.di = Actions.direction_from_name(pick1["di"])
 	if not pick2.is_empty():
 		fighter2.queued_pick = pick2
-		fighter2.di = Actions.direction_from_name(pick2["di"])
 
 	wait_text = ""
 	update_message()
@@ -300,7 +284,7 @@ func resolve_moves():
 	show_slide(fighter2, start2)
 
 
-# applies the position rules shared by moves, knockback and DI
+# applies the position rules shared by all movement
 func settle_positions(target1, target2):
 	# cannot leave the board
 	if not is_inside_board(target1):
@@ -349,44 +333,13 @@ func get_attack_result(attacker, defender):
 	return "hit"
 
 
-# the defender is pushed away from the attacker one tile at a time and stops at the board edge
-func get_knockback_landing(attacker, defender, action_name):
-	var tile = defender.grid_position
-	for step in range(Actions.DATA[action_name]["knockback"]):
-		var next_tile = tile + attacker.aim
-		if not is_inside_board(next_tile):
-			break
-		tile = next_tile
-	return tile
-
-
-# the board edge a landed hit pushes the defender into, (0, 0) when the push is not stopped
-func get_slam_side(attacker, defender, action_name, result):
-	if result != "hit":
-		return Vector2i(0, 0)
-
-	var tile = defender.grid_position
-	for step in range(Actions.DATA[action_name]["knockback"]):
-		var next_tile = tile + attacker.aim
-		if not is_inside_board(next_tile):
-			return wall_side(next_tile)
-		tile = next_tile
-	return Vector2i(0, 0)
-
-
-func apply_hit(victim, action_name, slam_side):
+func apply_hit(victim, action_name):
 	var data = Actions.DATA[action_name]
-	var damage = data["damage"]
-	var hitstun = data["hitstun"]
 
-	if slam_side != Vector2i(0, 0):
-		damage += Actions.WALL_SLAM["damage"]
-		hitstun += Actions.WALL_SLAM["hitstun"]
-
-	victim.hp -= damage
+	victim.hp -= data["damage"]
 	if victim.hp < 0:
 		victim.hp = 0
-	victim.hitstun_ticks = hitstun
+	victim.hitstun_ticks = data["hitstun"]
 	victim.clear_action()
 
 
@@ -394,12 +347,6 @@ func report_result(player_name, action_name, result):
 	if result == "none":
 		return
 	add_event(player_name + " " + action_name + " " + result)
-
-
-func report_slam(victim_name, slam_side):
-	if slam_side == Vector2i(0, 0):
-		return
-	add_event(victim_name + " wall slam")
 
 
 func resolve_hits():
@@ -416,40 +363,16 @@ func resolve_hits():
 		elif action1 == "Grab" and Actions.is_strike(action2):
 			result1 = "beaten"
 
-	# a hit by fighter 1 slams fighter 2 and the other way round
-	var slam_on_2 = get_slam_side(fighter1, fighter2, action1, result1)
-	var slam_on_1 = get_slam_side(fighter2, fighter1, action2, result2)
-
 	report_result("P1", action1, result1)
 	report_result("P2", action2, result2)
-	report_slam("P2", slam_on_2)
-	report_slam("P1", slam_on_1)
 
-	# effects read positions and actions before hits clear them or knockback moves anyone
+	# effects read positions and actions before hits clear them
 	effects.show_guard(fighter1)
 	effects.show_guard(fighter2)
-	effects.show_result(fighter1, fighter2, action1, result1, slam_on_2)
-	effects.show_result(fighter2, fighter1, action2, result2, slam_on_1)
-
-	var target1 = fighter1.grid_position
-	var target2 = fighter2.grid_position
-	if result1 == "hit":
-		target2 = get_knockback_landing(fighter1, fighter2, action1)
-	if result2 == "hit":
-		target1 = get_knockback_landing(fighter2, fighter1, action2)
+	effects.show_result(fighter1, fighter2, action1, result1)
+	effects.show_result(fighter2, fighter1, action2, result2)
 
 	if result1 == "hit":
-		apply_hit(fighter2, action1, slam_on_2)
+		apply_hit(fighter2, action1)
 	if result2 == "hit":
-		apply_hit(fighter1, action2, slam_on_1)
-
-	# knockback first, then DI from wherever the fighter landed
-	settle_positions(target1, target2)
-
-	target1 = fighter1.grid_position
-	target2 = fighter2.grid_position
-	if result2 == "hit":
-		target1 += fighter1.di
-	if result1 == "hit":
-		target2 += fighter2.di
-	settle_positions(target1, target2)
+		apply_hit(fighter1, action2)

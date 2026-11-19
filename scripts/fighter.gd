@@ -10,7 +10,6 @@ var stunned = false
 var current_action = "none"
 var action_tick = 0
 var aim = Vector2i(0, 0)
-var di = Vector2i(0, 0)
 var queued_pick = {}
 
 @onready var status_label = $StatusLabel
@@ -27,7 +26,6 @@ func reset(start_tile, start_facing):
 	hitstun_ticks = 0
 	stunned = false
 	aim = Vector2i(0, 0)
-	di = Vector2i(0, 0)
 	queued_pick = {}
 	clear_action()
 	update_label()

@@ -10,7 +10,6 @@ var notes = ["", ""]
 
 var action_group = ButtonGroup.new()
 var wheel_group = ButtonGroup.new()
-var di_group = ButtonGroup.new()
 
 var title_label
 var confirm_button
@@ -27,7 +26,6 @@ func _ready():
 
 	make_row(box, "Action:", ["Move", "Dash", "Jab", "Lunge", "Block", "Grab", "Wait"], action_group)
 	make_row(box, "Wheel:", Actions.DIRECTION_NAMES, wheel_group)
-	make_row(box, "DI:", ["None"] + Actions.DIRECTION_NAMES, di_group)
 
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm"
@@ -56,7 +54,6 @@ func make_row(parent, row_name, options, group):
 func reset_selection():
 	action_group.get_buttons()[0].button_pressed = true
 	wheel_group.get_buttons()[0].button_pressed = true
-	di_group.get_buttons()[0].button_pressed = true
 
 
 # only the players who need to choose are asked, the others keep their queued pick
@@ -91,7 +88,6 @@ func on_confirm_pressed():
 	var pick = {}
 	pick["action"] = action_group.get_pressed_button().text
 	pick["wheel"] = wheel_group.get_pressed_button().text
-	pick["di"] = di_group.get_pressed_button().text
 
 	if current_player == 1:
 		pick1 = pick

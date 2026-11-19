@@ -20,17 +20,14 @@ const DIRECTION_VECTORS = [
 # a turn lasts 4 ticks, so an action longer than that spills into the next turn
 # hit advantage = hitstun - recovery: positive means the attacker is free first
 const DATA = {
-	"Move": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "slide": 1, "startup": 0, "active": 1, "recovery": 0},
-	"Dash": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "slide": 2, "startup": 2, "active": 1, "recovery": 1},
-	"Jab": {"damage": 12, "hitstun": 2, "knockback": 1, "range": 1, "slide": 0, "startup": 1, "active": 1, "recovery": 1},
-	"Lunge": {"damage": 40, "hitstun": 5, "knockback": 2, "range": 1, "slide": 3, "startup": 2, "active": 1, "recovery": 4},
-	"Block": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "slide": 0, "startup": 0, "active": 3, "recovery": 1},
-	"Grab": {"damage": 30, "hitstun": 4, "knockback": 1, "range": 1, "slide": 0, "startup": 2, "active": 1, "recovery": 3},
-	"Wait": {"damage": 0, "hitstun": 0, "knockback": 0, "range": 0, "slide": 0, "startup": 0, "active": 1, "recovery": 1},
+	"Move": {"damage": 0, "hitstun": 0, "range": 0, "slide": 1, "startup": 0, "active": 1, "recovery": 0},
+	"Dash": {"damage": 0, "hitstun": 0, "range": 0, "slide": 2, "startup": 2, "active": 1, "recovery": 1},
+	"Jab": {"damage": 12, "hitstun": 2, "range": 1, "slide": 0, "startup": 1, "active": 1, "recovery": 1},
+	"Lunge": {"damage": 40, "hitstun": 5, "range": 1, "slide": 3, "startup": 2, "active": 1, "recovery": 4},
+	"Block": {"damage": 0, "hitstun": 0, "range": 0, "slide": 0, "startup": 0, "active": 3, "recovery": 1},
+	"Grab": {"damage": 30, "hitstun": 4, "range": 1, "slide": 0, "startup": 2, "active": 1, "recovery": 3},
+	"Wait": {"damage": 0, "hitstun": 0, "range": 0, "slide": 0, "startup": 0, "active": 1, "recovery": 1},
 }
-
-# added on top of the hit when knockback pushes a fighter into the edge of the board
-const WALL_SLAM = {"damage": 10, "hitstun": 1}
 
 
 func direction_from_name(direction_name):
