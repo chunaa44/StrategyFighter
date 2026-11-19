@@ -28,13 +28,6 @@ offset_top = 10.0
 offset_right = 140.0
 offset_bottom = 33.0
 
-[node name="MessageLabel" type="Label" parent="." unique_id=1331272664]
-offset_left = 100.0
-offset_top = 458.0
-offset_right = 140.0
-offset_bottom = 481.0
-theme_override_font_sizes/font_size = 8
-
 [node name="RestartButton" type="Button" parent="." unique_id=995860708]
 visible = false
 offset_left = 100.0
@@ -42,3 +35,9 @@ offset_top = 490.0
 offset_right = 187.0
 offset_bottom = 521.0
 text = "Play again"
+
+[node name="AdvantageLabel" type="Label" parent="." unique_id=1888510805]
+offset_left = 600.0
+offset_top = 10.0
+offset_right = 640.0
+offset_bottom = 26.0

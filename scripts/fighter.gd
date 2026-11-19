@@ -2,13 +2,8 @@ extends Node2D
 
 const START_HP = 100
 
-# colour each phase pulses towards and how fast, steady team colour otherwise
-const PULSE_STRENGTH = 0.85
-const PULSES = {
-	"active": {"color": Color(1.0, 0.85, 0.2), "speed": 18.0},
-	"recovery": {"color": Color(0.15, 0.15, 0.2), "speed": 6.0},
-	"stunned": {"color": Color(1.0, 1.0, 1.0), "speed": 24.0},
-}
+const STUNNED_COLOR = Color(1.0, 1.0, 1.0)
+const RECOVERY_DARKEN = 0.6
 
 var hp = START_HP
 var grid_position = Vector2i(0, 1)
@@ -18,14 +13,9 @@ var stunned = false
 var current_action = "none"
 var action_tick = 0
 var aim = Vector2i(0, 0)
-var queued_pick = {}
 
 var body_color = Color.WHITE
-var tick_phase = "idle"
-var shown_phase = "idle"
-var pulse_time = 0.0
 
-@onready var status_label = $StatusLabel
 @onready var body = $ColorRect
 
 
@@ -41,29 +31,11 @@ func reset(start_tile, start_facing):
 	hitstun_ticks = 0
 	stunned = false
 	aim = Vector2i(0, 0)
-	queued_pick = {}
-	tick_phase = "idle"
 	clear_action()
-	update_label()
+	update_color()
 
 
-func _process(delta):
-	var phase = display_phase()
-	if phase != shown_phase:
-		shown_phase = phase
-		pulse_time = 0.0
-	pulse_time += delta
-
-	if not PULSES.has(phase):
-		body.color = body_color
-		return
-
-	var style = PULSES[phase]
-	var amount = PULSE_STRENGTH * (0.5 + 0.5 * cos(pulse_time * style["speed"]))
-	body.color = body_color.lerp(style["color"], amount)
-
-
-# ticks into the next turn before this fighter can start a new action
+# ticks before this fighter can start a new action, 0 when it is already free
 func ticks_until_free():
 	var action_wait = 0
 	if current_action != "none":
@@ -71,9 +43,26 @@ func ticks_until_free():
 	return maxi(action_wait, hitstun_ticks)
 
 
-# true when the fighter will be able to start an action on the next tick
+# dash and lunge look the same until they become active, so their length stays secret
+func is_disguised():
+	return Actions.is_rush(current_action) and action_tick < Actions.DATA[current_action]["startup"]
+
+
+# nothing going on and not stunned, a new action has to be chosen
 func can_act_next_tick():
 	return current_action == "none" and hitstun_ticks == 0
+
+
+# still inside the cancel window of the current action
+func can_cancel():
+	if current_action == "none" or hitstun_ticks > 0:
+		return false
+	return action_tick < Actions.DATA[current_action]["cancel"]
+
+
+# the fighter is asked for a pick before the next tick
+func can_decide():
+	return can_act_next_tick() or can_cancel()
 
 
 func start_tick():
@@ -84,10 +73,6 @@ func start_tick():
 		stunned = false
 
 
-func is_free():
-	return current_action == "none" and not stunned
-
-
 func is_hurt():
 	return stunned or hitstun_ticks > 0
 
@@ -96,8 +81,8 @@ func start_action(pick):
 	current_action = pick["action"]
 	action_tick = 0
 	aim = Actions.direction_from_name(pick["wheel"])
-	# waiting returns to the idle pose, so no direction is kept
-	if current_action == "Wait":
+	# holding returns to the idle pose, so no direction is kept
+	if current_action == "Hold":
 		aim = Vector2i(0, 0)
 
 
@@ -119,35 +104,19 @@ func is_guarding():
 	return current_action == "Block" and in_active_frames()
 
 
-# phase of the tick being resolved, called once the tick's action has started
-# so the colour lines up with the attack marks drawn for that same tick
-func mark_phase():
-	if stunned:
-		tick_phase = "stunned"
-	elif current_action == "none" or current_action == "Wait":
-		tick_phase = "idle"
-	elif in_active_frames():
-		tick_phase = "active"
-	elif action_tick < Actions.DATA[current_action]["startup"]:
-		tick_phase = "startup"
-	else:
-		tick_phase = "recovery"
+# the action is past its active frames and only has to finish
+func in_recovery():
+	if current_action == "none" or current_action == "Hold":
+		return false
+	var data = Actions.DATA[current_action]
+	return action_tick >= data["startup"] + data["active"]
 
 
-# a fighter that was just hit shows as stunned right away
-func display_phase():
+# steady colour: white when stunned, darker while recovering, team colour otherwise
+func update_color():
 	if is_hurt():
-		return "stunned"
-	return tick_phase
-
-
-# dash and lunge share a label so the opponent cannot tell them apart, wait shows the idle pose
-func update_label():
-	if is_hurt() or current_action == "none" or current_action == "Wait":
-		status_label.text = ""
+		body.color = STUNNED_COLOR
+	elif in_recovery():
+		body.color = body_color.darkened(RECOVERY_DARKEN)
 	else:
-		var action_text = current_action
-		if Actions.is_rush(current_action):
-			action_text = "Rush"
-		var direction_name = Actions.DIRECTION_NAMES[Actions.direction_index(aim)]
-		status_label.text = action_text + "\n" + direction_name
+		body.color = body_color
