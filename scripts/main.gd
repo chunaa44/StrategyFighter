@@ -28,6 +28,8 @@ func _ready():
 
 	restart_button.pressed.connect(on_restart_pressed)
 	$PickScreen.both_picked.connect(on_both_picked)
+	$PickScreen.preview_changed.connect(on_preview_changed)
+	$PickScreen.preview_cleared.connect(effects.clear_preview)
 
 	reset_match()
 	ask_for_picks()
@@ -137,6 +139,36 @@ func ask_for_picks():
 	$PickScreen.begin_picks(need1, need2, wait_note(fighter1), wait_note(fighter2))
 
 
+# only the player currently choosing gets a preview
+# the opponent is assumed to stay put, their pending slide would give away dash versus lunge
+func on_preview_changed(player_number, action_name, direction_name):
+	var fighter = fighter1
+	var other = fighter2
+	if player_number == 2:
+		fighter = fighter2
+		other = fighter1
+	var start = projected_tile(fighter, other)
+	effects.show_preview(fighter, other, action_name, Actions.direction_from_name(direction_name), start)
+
+
+# where a fighter stands once its current action has played out, which is where a queued pick begins
+func projected_tile(fighter, other):
+	var tile = fighter.grid_position
+	if fighter.current_action == "none":
+		return tile
+
+	var data = Actions.DATA[fighter.current_action]
+	if data["slide"] == 0:
+		return tile
+
+	var first = data["startup"]
+	var last = data["startup"] + data["active"] - 1
+	for tick in range(fighter.action_tick, Actions.total_ticks(fighter.current_action)):
+		if tick >= first and tick <= last:
+			tile = slide_end(tile, fighter.aim, data["slide"], other.grid_position)
+	return tile
+
+
 # a decision is needed as soon as someone can act and has nothing queued
 func needs_decision():
 	if fighter1.queued_pick.is_empty() and fighter1.can_act_next_tick():
@@ -191,6 +223,9 @@ func resolve_tick():
 	begin_action(fighter1)
 	begin_action(fighter2)
 
+	fighter1.mark_phase()
+	fighter2.mark_phase()
+
 	resolve_moves()
 	resolve_hits()
 
@@ -227,8 +262,21 @@ func update_facing():
 		fighter2.facing = 1
 
 
-# where a fighter ends up if it slides this tick: it stops at the board edge
-# and in front of the opponent's current tile
+# where a slide from start along aim ends: it stops at the board edge
+# and in front of the blocking tile
+func slide_end(start, aim, slide, blocker):
+	var tile = start
+	for step in range(slide):
+		var next_tile = tile + aim
+		if not is_inside_board(next_tile):
+			break
+		if next_tile == blocker:
+			break
+		tile = next_tile
+	return tile
+
+
+# where a fighter ends up if it slides this tick
 func move_target(fighter, other):
 	var tile = fighter.grid_position
 	if fighter.current_action == "none":
@@ -236,15 +284,7 @@ func move_target(fighter, other):
 	var slide = Actions.DATA[fighter.current_action]["slide"]
 	if slide == 0 or not fighter.in_active_frames():
 		return tile
-
-	for step in range(slide):
-		var next_tile = tile + fighter.aim
-		if not is_inside_board(next_tile):
-			break
-		if next_tile == other.grid_position:
-			break
-		tile = next_tile
-	return tile
+	return slide_end(tile, fighter.aim, slide, other.grid_position)
 
 
 # two slides that touch the same tile cancel each other

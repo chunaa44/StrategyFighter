@@ -14,9 +14,18 @@ const TEXT_SIZE = 16
 const GUARD_INSET = 5.0
 const GUARD_WIDTH = 6.0
 
+const PREVIEW_FILL = 0.18
+const PREVIEW_LINE = 0.55
+const PREVIEW_PULSE_SPEED = 6.0
+const SPOT_INSET = 14.0
+const ORIGIN_INSET = 28.0
+
 # marks live for one tick, texts fade out on their own timer
 var marks = []
 var texts = []
+# the ghost of the pick being decided, kept apart from the combat marks
+var preview = []
+var preview_time = 0.0
 var main
 
 
@@ -27,13 +36,19 @@ func setup(main_node):
 func clear():
 	marks.clear()
 	texts.clear()
+	preview.clear()
 
 
 func clear_tick():
 	marks.clear()
 
 
+func clear_preview():
+	preview.clear()
+
+
 func _process(delta):
+	preview_time += delta
 	var i = texts.size() - 1
 	while i >= 0:
 		texts[i]["age"] += delta
@@ -67,10 +82,14 @@ func pixel_font():
 
 # tiles a strike or grab covers, limited to the board
 func reach_tiles(fighter):
+	return line_tiles(fighter.grid_position, fighter.aim, Actions.DATA[fighter.current_action]["range"])
+
+
+# tiles in a straight line from origin, limited to the board
+func line_tiles(origin, aim, reach):
 	var tiles = []
-	var reach = Actions.DATA[fighter.current_action]["range"]
 	for step in range(1, reach + 1):
-		var tile = fighter.grid_position + fighter.aim * step
+		var tile = origin + aim * step
 		if main.is_inside_board(tile):
 			tiles.append(tile)
 	return tiles
@@ -132,9 +151,38 @@ func show_result(attacker, defender, action_name, result):
 		add_text(defender.grid_position, "-" + str(Actions.DATA[action_name]["damage"]), color)
 
 
+# ghost of a pick that has not been confirmed yet, drawn from the tile where the pick would begin
+# a rush looks the same whether it is a dash or a lunge, only the strike tile tells them apart
+func show_preview(fighter, other, action_name, aim, start):
+	preview.clear()
+
+	# a queued pick begins after the current action, so mark where that is
+	if start != fighter.grid_position:
+		preview.append({"kind": "origin", "tile": start})
+
+	if action_name == "Wait":
+		return
+
+	if action_name == "Block":
+		preview.append({"kind": "guard", "tile": start, "aim": aim, "color": GUARD_COLOR})
+		return
+
+	var data = Actions.DATA[action_name]
+	var end = main.slide_end(start, aim, data["slide"], other.grid_position)
+
+	if end != start:
+		preview.append({"kind": "tiles", "tiles": Actions.path_tiles(start, end), "color": DASH_COLOR})
+		preview.append({"kind": "spot", "tile": end})
+
+	if data["range"] > 0:
+		preview.append({"kind": "tiles", "tiles": line_tiles(end, aim, data["range"]), "color": action_color(action_name)})
+
+
 func _draw():
 	if main == null:
 		return
+
+	draw_preview()
 
 	for mark in marks:
 		if mark["kind"] == "tiles":
@@ -146,12 +194,33 @@ func _draw():
 		draw_floating_text(text)
 
 
-func draw_tiles(tiles, color):
-	var fill = Color(color, 0.4)
+# faint and pulsing so it never reads as something that is happening
+func draw_preview():
+	var pulse = 0.7 + 0.3 * sin(preview_time * PREVIEW_PULSE_SPEED)
+	for mark in preview:
+		if mark["kind"] == "tiles":
+			draw_tiles(mark["tiles"], mark["color"], PREVIEW_FILL * pulse, PREVIEW_LINE * pulse)
+		elif mark["kind"] == "guard":
+			draw_guard_sides(mark["tile"], mark["aim"], Color(mark["color"], 0.8 * pulse))
+		elif mark["kind"] == "origin":
+			draw_spot(mark["tile"], 0.6 * pulse, ORIGIN_INSET)
+		else:
+			draw_spot(mark["tile"], 0.9 * pulse, SPOT_INSET)
+
+
+func draw_tiles(tiles, color, fill_alpha = 0.4, line_alpha = 1.0):
+	var fill = Color(color, fill_alpha)
+	var line = Color(color, line_alpha)
 	for tile in tiles:
 		var rect = tile_rect(tile)
 		draw_rect(rect, fill, true)
-		draw_rect(rect.grow(-3), color, false, 3.0)
+		draw_rect(rect.grow(-3), line, false, 3.0)
+
+
+# outline of where the fighter would stand, the smaller one marks where a queued pick starts
+func draw_spot(tile, alpha, inset):
+	var rect = tile_rect(tile).grow(-inset)
+	draw_rect(rect, Color(1.0, 1.0, 1.0, alpha), false, 2.0)
 
 
 # the three guarded directions are drawn as one unbroken run along the tile border

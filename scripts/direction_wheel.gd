@@ -1,5 +1,7 @@
 extends Control
 
+signal direction_changed
+
 # the wheel is drawn on a small grid, one cell is a PIXEL x PIXEL square
 const RADIUS = 12
 const PIXEL = 6
@@ -35,9 +37,10 @@ func _gui_input(event):
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			var index = sector_at(event.position)
-			if index != -1:
+			if index != -1 and index != selected:
 				selected = index
 				queue_redraw()
+				direction_changed.emit()
 
 
 # -1 when the point is outside the wheel or on the dead centre

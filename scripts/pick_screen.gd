@@ -1,6 +1,8 @@
 extends Control
 
 signal both_picked(pick1, pick2)
+signal preview_changed(player_number, action_name, direction_name)
+signal preview_cleared
 
 const DirectionWheel = preload("res://scripts/direction_wheel.gd")
 
@@ -43,7 +45,10 @@ func _ready():
 
 	wheel = DirectionWheel.new()
 	wheel.position = WHEEL_POSITION
+	wheel.direction_changed.connect(emit_preview)
 	add_child(wheel)
+
+	action_group.pressed.connect(on_action_pressed)
 
 
 func make_row(parent, row_name, options, group):
@@ -82,6 +87,19 @@ func make_action_button(option, group):
 func reset_selection():
 	action_group.get_buttons()[0].button_pressed = true
 	wheel.select(0)
+	emit_preview()
+
+
+func on_action_pressed(_button):
+	emit_preview()
+
+
+# the board shows a ghost of whatever is currently selected for the player choosing
+func emit_preview():
+	var pressed_button = action_group.get_pressed_button()
+	if pressed_button == null:
+		return
+	preview_changed.emit(current_player, pressed_button.text, wheel.get_direction_name())
 
 
 # only the players who need to choose are asked, the others keep their queued pick
@@ -109,6 +127,7 @@ func start_player_turn(player_number):
 
 func finish_picks():
 	visible = false
+	preview_cleared.emit()
 	both_picked.emit(pick1, pick2)
 
 
