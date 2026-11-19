@@ -8,6 +8,10 @@ const BOX_POSITION = Vector2(100, 490)
 const WHEEL_POSITION = Vector2(900, 120)
 const TITLE_SIZE = 16
 
+const ICON_PATH = "res://assets/icons/%s.png"
+const BUTTON_SIZE = Vector2(88, 76)
+const BUTTON_FONT_SIZE = 12
+
 var current_player = 1
 var pick1 = {}
 var pick2 = {}
@@ -49,15 +53,30 @@ func make_row(parent, row_name, options, group):
 	var label = Label.new()
 	label.text = row_name
 	label.custom_minimum_size = Vector2(130, 0)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
 
 	for option in options:
-		var button = Button.new()
-		button.text = option
-		button.toggle_mode = true
-		button.button_group = group
-		button.custom_minimum_size = Vector2(80, 0)
-		row.add_child(button)
+		row.add_child(make_action_button(option, group))
+
+
+# icon sits above the name, a missing icon file leaves a text-only button
+func make_action_button(option, group):
+	var button = Button.new()
+	button.text = option
+	button.toggle_mode = true
+	button.button_group = group
+	button.custom_minimum_size = BUTTON_SIZE
+	button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
+	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	var icon_file = ICON_PATH % option.to_lower()
+	if ResourceLoader.exists(icon_file):
+		button.icon = load(icon_file)
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		button.expand_icon = false
+	return button
 
 
 func reset_selection():
