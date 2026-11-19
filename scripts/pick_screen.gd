@@ -2,6 +2,11 @@ extends Control
 
 signal both_picked(pick1, pick2)
 
+const DirectionWheel = preload("res://scripts/direction_wheel.gd")
+
+const BOX_POSITION = Vector2(100, 490)
+const WHEEL_POSITION = Vector2(900, 120)
+
 var current_player = 1
 var pick1 = {}
 var pick2 = {}
@@ -9,28 +14,30 @@ var needs = [true, true]
 var notes = ["", ""]
 
 var action_group = ButtonGroup.new()
-var wheel_group = ButtonGroup.new()
 
 var title_label
 var confirm_button
+var wheel
 
 
 func _ready():
-	position = Vector2(100, 490)
-
 	var box = VBoxContainer.new()
+	box.position = BOX_POSITION
 	add_child(box)
 
 	title_label = Label.new()
 	box.add_child(title_label)
 
 	make_row(box, "Action:", ["Move", "Dash", "Jab", "Lunge", "Block", "Grab", "Wait"], action_group)
-	make_row(box, "Wheel:", Actions.DIRECTION_NAMES, wheel_group)
 
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm"
 	confirm_button.pressed.connect(on_confirm_pressed)
 	box.add_child(confirm_button)
+
+	wheel = DirectionWheel.new()
+	wheel.position = WHEEL_POSITION
+	add_child(wheel)
 
 
 func make_row(parent, row_name, options, group):
@@ -53,7 +60,7 @@ func make_row(parent, row_name, options, group):
 
 func reset_selection():
 	action_group.get_buttons()[0].button_pressed = true
-	wheel_group.get_buttons()[0].button_pressed = true
+	wheel.select(0)
 
 
 # only the players who need to choose are asked, the others keep their queued pick
@@ -87,7 +94,7 @@ func finish_picks():
 func on_confirm_pressed():
 	var pick = {}
 	pick["action"] = action_group.get_pressed_button().text
-	pick["wheel"] = wheel_group.get_pressed_button().text
+	pick["wheel"] = wheel.get_direction_name()
 
 	if current_player == 1:
 		pick1 = pick
