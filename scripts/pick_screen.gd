@@ -80,12 +80,12 @@ func begin_picks(need1, need2, action1, action2):
 		start_player_turn(2)
 
 
+# the title never names the running action, the other player sits at the same screen
 func start_player_turn(player_number):
 	current_player = player_number
 	var title = "Player " + str(player_number)
-	var action_name = running[player_number - 1]
-	if action_name != "none":
-		title += "   Hold keeps " + action_name
+	if running[player_number - 1] != "none":
+		title += "   Hold keeps current action"
 	title_label.text = title
 	reset_selection(player_number)
 

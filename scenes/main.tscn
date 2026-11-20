@@ -132,3 +132,16 @@ offset_left = 208.0
 offset_top = 538.0
 offset_right = 248.0
 offset_bottom = 554.0
+
+[node name="P1StatusLabel" type="Label" parent="." unique_id=714528059]
+offset_left = 16.0
+offset_top = 360.0
+offset_right = 56.0
+offset_bottom = 376.0
+
+[node name="P2StatusLabel" type="Label" parent="." unique_id=550013474]
+offset_left = 1088.0
+offset_top = 360.0
+offset_right = 1280.0
+offset_bottom = 376.0
+horizontal_alignment = 2

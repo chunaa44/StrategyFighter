@@ -13,6 +13,8 @@ const START_TILE_2 = Vector2i(7, 2)
 @onready var effects = $Effects
 @onready var hp_label = $HpLabel
 @onready var advantage_label = $AdvantageLabel
+@onready var p1_status_label = $P1StatusLabel
+@onready var p2_status_label = $P2StatusLabel
 @onready var restart_button = $RestartButton
 
 
@@ -71,8 +73,35 @@ func update_fighter_positions():
 func refresh_view():
 	update_fighter_positions()
 	update_hp_label()
+	update_status_labels()
 	fighter1.update_color()
 	fighter2.update_color()
+
+
+# a dash or lunge in startup shows no numbers, the length would reveal which of the two it is
+func status_text(title, fighter):
+	var text = title + "\n"
+	if fighter.hitstun_ticks > 0:
+		return text + "Stunned " + str(fighter.hitstun_ticks)
+	if fighter.current_action == "none":
+		return text + "Free"
+	if fighter.is_disguised():
+		return text + "Rush ?/?\nStartup"
+
+	var action = fighter.current_action
+	text += action + " " + str(fighter.action_tick) + "/" + str(Actions.total_ticks(action)) + "\n"
+	if fighter.in_active_frames():
+		text += "Active"
+	elif fighter.in_recovery():
+		text += "Recovery"
+	else:
+		text += "Startup"
+	return text
+
+
+func update_status_labels():
+	p1_status_label.text = status_text("P1", fighter1)
+	p2_status_label.text = status_text("P2", fighter2)
 
 
 func update_hp_label():
