@@ -2,8 +2,8 @@ extends Node2D
 
 const BOARD_WIDTH = 9
 const BOARD_HEIGHT = 5
-const TILE_SIZE = 80
-const BOARD_OFFSET = Vector2(100, 50)
+const TILE_SIZE = 96
+const BOARD_OFFSET = Vector2(208, 48)
 const TICK_DELAY = 0.6
 const START_TILE_1 = Vector2i(1, 2)
 const START_TILE_2 = Vector2i(7, 2)
@@ -79,20 +79,25 @@ func update_hp_label():
 	hp_label.text = "P1 HP: " + str(fighter1.hp) + "     P2 HP: " + str(fighter2.hp)
 
 
-# positive means that fighter can start its next action that many ticks before the other
+# frame advantage from the point of view of the player choosing
+# positive means that player can start the next action that many ticks before the opponent
 # a dash or lunge in startup hides it, the length would reveal which of the two it is
-func update_advantage_text():
+func update_advantage_text(player_number):
 	if fighter1.is_disguised() or fighter2.is_disguised():
-		advantage_label.text = "Advantage  ?"
+		advantage_label.text = "Frame advantage: ?"
 		return
 
-	var advantage = fighter2.ticks_until_free() - fighter1.ticks_until_free()
-	if advantage == 0:
-		advantage_label.text = "Advantage  even"
-	elif advantage > 0:
-		advantage_label.text = "Advantage  P1 +" + str(advantage) + "  P2 -" + str(advantage)
-	else:
-		advantage_label.text = "Advantage  P1 " + str(advantage) + "  P2 +" + str(-advantage)
+	var mine = fighter1
+	var theirs = fighter2
+	if player_number == 2:
+		mine = fighter2
+		theirs = fighter1
+
+	var advantage = theirs.ticks_until_free() - mine.ticks_until_free()
+	var advantage_text = str(advantage)
+	if advantage > 0:
+		advantage_text = "+" + advantage_text
+	advantage_label.text = "Frame advantage: " + advantage_text
 
 
 func _draw():
@@ -106,13 +111,13 @@ func _draw():
 
 # fighters that are free or inside a cancel window are asked, the others keep playing their action
 func ask_for_picks():
-	update_advantage_text()
 	$PickScreen.begin_picks(fighter1.can_decide(), fighter2.can_decide(), fighter1.current_action, fighter2.current_action)
 
 
 # only the player currently choosing gets a preview
 # the opponent is assumed to stay put, their pending slide would give away dash versus lunge
 func on_preview_changed(player_number, action_name, direction_name):
+	update_advantage_text(player_number)
 	var fighter = fighter1
 	var other = fighter2
 	if player_number == 2:

@@ -7,8 +7,6 @@ const RADIUS = 12
 const PIXEL = 6
 const DEAD_ZONE = 2.5
 const MARKER_DISTANCE = 8.0
-const LABEL_HEIGHT = 28
-const LABEL_SIZE = 16
 
 const COLOR_RING = Color(0.85, 0.85, 0.9)
 const COLOR_DISC = Color(0.12, 0.12, 0.16)
@@ -20,7 +18,7 @@ var selected = 0
 
 func _ready():
 	var cells = RADIUS * 2 + 1
-	custom_minimum_size = Vector2(cells * PIXEL, cells * PIXEL + LABEL_HEIGHT)
+	custom_minimum_size = Vector2(cells * PIXEL, cells * PIXEL)
 	size = custom_minimum_size
 
 
@@ -96,8 +94,3 @@ func _draw():
 		if i != selected:
 			draw_marker(marker_cell(i), COLOR_MARKER)
 	draw_marker(target, COLOR_SELECTED)
-
-	var font = get_theme_default_font()
-	var width = (RADIUS * 2 + 1) * PIXEL
-	var label_position = Vector2(0, width + LABEL_SIZE)
-	draw_string(font, label_position, get_direction_name(), HORIZONTAL_ALIGNMENT_CENTER, width, LABEL_SIZE, Color.WHITE)
