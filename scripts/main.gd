@@ -121,8 +121,9 @@ func on_preview_changed(player_number, action_name, direction_name):
 	effects.show_preview(fighter, other, action_name, Actions.direction_from_name(direction_name))
 
 
+# the game only stops when someone is free, a cancel window alone never stops it
 func needs_decision():
-	return fighter1.can_decide() or fighter2.can_decide()
+	return fighter1.can_act_next_tick() or fighter2.can_act_next_tick()
 
 
 func on_both_picked(pick1, pick2):

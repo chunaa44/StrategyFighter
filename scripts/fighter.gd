@@ -4,6 +4,7 @@ const START_HP = 100
 
 const STUNNED_COLOR = Color(1.0, 1.0, 1.0)
 const RECOVERY_DARKEN = 0.6
+const STUN_PULSE_SPEED = 10.0
 
 var hp = START_HP
 var grid_position = Vector2i(0, 1)
@@ -15,8 +16,18 @@ var action_tick = 0
 var aim = Vector2i(0, 0)
 
 var body_color = Color.WHITE
+var pulse_time = 0.0
 
 @onready var body = $ColorRect
+
+
+func _process(delta):
+	if not is_hurt():
+		pulse_time = 0.0
+		return
+	pulse_time += delta
+	var amount = 0.5 + 0.5 * cos(pulse_time * STUN_PULSE_SPEED)
+	body.color = body_color.lerp(STUNNED_COLOR, amount)
 
 
 func set_color(new_color):
@@ -112,7 +123,7 @@ func in_recovery():
 	return action_tick >= data["startup"] + data["active"]
 
 
-# steady colour: white when stunned, darker while recovering, team colour otherwise
+# stunned colour is animated in _process, darker while recovering, team colour otherwise
 func update_color():
 	if is_hurt():
 		body.color = STUNNED_COLOR
