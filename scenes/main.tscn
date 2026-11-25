@@ -113,6 +113,39 @@ offset_right = 962.0
 offset_bottom = 588.0
 script = ExtResource("12_0ld40")
 
+[node name="CoverLayer" type="CanvasLayer" parent="PickScreen" unique_id=2048916081]
+
+[node name="Cover" type="ColorRect" parent="PickScreen/CoverLayer" unique_id=425991208]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.101960786, 0.101960786, 0.101960786, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="PickScreen/CoverLayer/Cover" unique_id=760359622]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CoverBox" type="VBoxContainer" parent="PickScreen/CoverLayer/Cover/CenterContainer" unique_id=1512691671]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="CoverLabel" type="Label" parent="PickScreen/CoverLayer/Cover/CenterContainer/CoverBox" unique_id=582933677]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+
+[node name="ReadyButton" type="Button" parent="PickScreen/CoverLayer/Cover/CenterContainer/CoverBox" unique_id=1258765449]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Ready"
+
 [node name="HpLabel" type="Label" parent="." unique_id=1225833372]
 offset_left = 208.0
 offset_top = 12.0

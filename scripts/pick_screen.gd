@@ -14,6 +14,9 @@ var running = ["none", "none"]
 @onready var title_label = $Box/TitleLabel
 @onready var confirm_button = $Box/ConfirmButton
 @onready var wheel = $Wheel
+@onready var cover = $CoverLayer/Cover
+@onready var cover_label = $CoverLayer/Cover/CenterContainer/CoverBox/CoverLabel
+@onready var ready_button = $CoverLayer/Cover/CenterContainer/CoverBox/ReadyButton
 # every action button shares this group
 @onready var action_group = $Box/ActionRow/Move.button_group
 
@@ -23,6 +26,7 @@ func _ready():
 		button.tooltip_text = make_tooltip(str(button.name))
 
 	confirm_button.pressed.connect(on_confirm_pressed)
+	ready_button.pressed.connect(on_ready_pressed)
 	wheel.direction_changed.connect(emit_preview)
 	action_group.pressed.connect(on_action_pressed)
 
@@ -80,9 +84,13 @@ func begin_picks(need1, need2, action1, action2):
 		start_player_turn(2)
 
 
+# the cover goes up first so nothing of the previous pick is visible
 # the title never names the running action, the other player sits at the same screen
 func start_player_turn(player_number):
 	current_player = player_number
+	cover_label.text = "Player " + str(player_number) + "'s turn\nOther player look away, then press Ready"
+	cover.visible = true
+
 	var title = "Player " + str(player_number)
 	if running[player_number - 1] != "none":
 		title += "   Hold keeps current action"
@@ -90,8 +98,14 @@ func start_player_turn(player_number):
 	reset_selection(player_number)
 
 
+func on_ready_pressed():
+	cover.visible = false
+
+
+# a CanvasLayer ignores the parent's visibility, so the cover is hidden here as well
 func finish_picks():
 	visible = false
+	cover.visible = false
 	preview_cleared.emit()
 	both_picked.emit(pick1, pick2)
 
