@@ -35,8 +35,6 @@ const DATA = {
 
 
 func direction_from_name(direction_name):
-	if direction_name == "None":
-		return Vector2i(0, 0)
 	var index = DIRECTION_NAMES.find(direction_name)
 	return DIRECTION_VECTORS[index]
 

@@ -18,11 +18,8 @@ var marks = []
 # the ghost of the pick being decided, kept apart from the combat marks
 var preview = []
 var preview_time = 0.0
-var main
 
-
-func setup(main_node):
-	main = main_node
+@onready var board = $"../Board"
 
 
 func clear():
@@ -44,7 +41,7 @@ func _process(delta):
 
 
 func tile_rect(tile):
-	return Rect2(main.tile_to_pixel(tile), Vector2(main.TILE_SIZE, main.TILE_SIZE))
+	return Rect2(board.tile_to_pixel(tile), Vector2(board.TILE_SIZE, board.TILE_SIZE))
 
 
 func action_color(action_name):
@@ -58,7 +55,7 @@ func line_tiles(origin, aim, reach):
 	var tiles = []
 	for step in range(1, reach + 1):
 		var tile = origin + aim * step
-		if main.is_inside_board(tile):
+		if board.is_inside_board(tile):
 			tiles.append(tile)
 	return tiles
 
@@ -121,7 +118,7 @@ func show_preview(fighter, other, action_name, aim):
 		return
 
 	var data = Actions.DATA[action_name]
-	var end = main.slide_end(start, aim, data["slide"], other.grid_position)
+	var end = board.slide_end(start, aim, data["slide"], other.grid_position)
 
 	if end != start:
 		preview.append({"kind": "tiles", "tiles": Actions.path_tiles(start, end), "color": BLUE_COLOR})
@@ -132,9 +129,6 @@ func show_preview(fighter, other, action_name, aim):
 
 
 func _draw():
-	if main == null:
-		return
-
 	draw_preview()
 
 	for mark in marks:

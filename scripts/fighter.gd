@@ -8,7 +8,6 @@ const STUN_PULSE_SPEED = 10.0
 
 var hp = START_HP
 var grid_position = Vector2i(0, 1)
-var facing = 1
 var hitstun_ticks = 0
 var stunned = false
 var current_action = "none"
@@ -35,10 +34,9 @@ func set_color(new_color):
 	body.color = new_color
 
 
-func reset(start_tile, start_facing):
+func reset(start_tile):
 	hp = START_HP
 	grid_position = start_tile
-	facing = start_facing
 	hitstun_ticks = 0
 	stunned = false
 	aim = Vector2i(0, 0)
