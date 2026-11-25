@@ -88,6 +88,9 @@ func begin_picks(need1, need2, action1, action2):
 # the title never names the running action, the other player sits at the same screen
 func start_player_turn(player_number):
 	current_player = player_number
+	var color = Actions.PLAYER_COLORS[player_number - 1]
+	cover_label.add_theme_color_override("font_color", color)
+	title_label.add_theme_color_override("font_color", color)
 	cover_label.text = "Player " + str(player_number) + "'s turn\nOther player look away, then press Ready"
 	cover.visible = true
 

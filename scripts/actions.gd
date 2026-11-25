@@ -1,5 +1,8 @@
 extends Node
 
+# index 0 is player 1, kept away from the effect colours (red, orange, cyan, white, yellow)
+const PLAYER_COLORS = [Color(0.35, 0.85, 0.4), Color(0.72, 0.45, 0.95)]
+
 # ring order: neighbouring entries are neighbouring directions
 const DIRECTION_NAMES = ["Up", "Up-Right", "Right", "Down-Right", "Down", "Down-Left", "Left", "Up-Left"]
 const DIRECTION_VECTORS = [
@@ -23,7 +26,7 @@ const DIRECTION_VECTORS = [
 const DATA = {
 	"Move": {"damage": 0, "hitstun": 0, "range": 0, "slide": 1, "startup": 0, "active": 1, "recovery": 0, "cancel": 0},
 	"Dash": {"damage": 0, "hitstun": 0, "range": 0, "slide": 2, "startup": 2, "active": 1, "recovery": 1, "cancel": 2},
-	"Jab": {"damage": 12, "hitstun": 2, "range": 1, "slide": 0, "startup": 1, "active": 1, "recovery": 1, "cancel": 0},
+	"Jab": {"damage": 15, "hitstun": 2, "range": 2, "slide": 0, "startup": 1, "active": 1, "recovery": 1, "cancel": 0},
 	"Lunge": {"damage": 40, "hitstun": 5, "range": 1, "slide": 3, "startup": 2, "active": 1, "recovery": 4, "cancel": 2},
 	"Block": {"damage": 0, "hitstun": 0, "range": 0, "slide": 0, "startup": 0, "active": 3, "recovery": 1, "cancel": 3},
 	"Grab": {"damage": 30, "hitstun": 4, "range": 1, "slide": 0, "startup": 2, "active": 1, "recovery": 3, "cancel": 2},

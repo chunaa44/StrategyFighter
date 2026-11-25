@@ -11,7 +11,9 @@ const START_TILE_2 = Vector2i(7, 2)
 @onready var fighter1 = $Fighter1
 @onready var fighter2 = $Fighter2
 @onready var effects = $Effects
-@onready var hp_label = $HpLabel
+@onready var p1_hp_label = $P1HpLabel
+@onready var p2_hp_label = $P2HpLabel
+@onready var result_label = $ResultLabel
 @onready var advantage_label = $AdvantageLabel
 @onready var p1_status_label = $P1StatusLabel
 @onready var p2_status_label = $P2StatusLabel
@@ -19,8 +21,12 @@ const START_TILE_2 = Vector2i(7, 2)
 
 
 func _ready():
-	fighter1.set_color(Color.CORNFLOWER_BLUE)
-	fighter2.set_color(Color.INDIAN_RED)
+	fighter1.set_color(Actions.PLAYER_COLORS[0])
+	fighter2.set_color(Actions.PLAYER_COLORS[1])
+	p1_hp_label.add_theme_color_override("font_color", Actions.PLAYER_COLORS[0])
+	p2_hp_label.add_theme_color_override("font_color", Actions.PLAYER_COLORS[1])
+	p1_status_label.add_theme_color_override("font_color", Actions.PLAYER_COLORS[0])
+	p2_status_label.add_theme_color_override("font_color", Actions.PLAYER_COLORS[1])
 
 	effects.setup(self)
 
@@ -38,6 +44,7 @@ func reset_match():
 	fighter2.reset(START_TILE_2, -1)
 	effects.clear()
 	advantage_label.text = ""
+	result_label.text = ""
 	restart_button.visible = false
 	refresh_view()
 
@@ -105,13 +112,15 @@ func update_status_labels():
 
 
 func update_hp_label():
-	hp_label.text = "P1 HP: " + str(fighter1.hp) + "     P2 HP: " + str(fighter2.hp)
+	p1_hp_label.text = "P1 HP: " + str(fighter1.hp)
+	p2_hp_label.text = "P2 HP: " + str(fighter2.hp)
 
 
 # frame advantage from the point of view of the player choosing
 # positive means that player can start the next action that many ticks before the opponent
 # a dash or lunge in startup hides it, the length would reveal which of the two it is
 func update_advantage_text(player_number):
+	advantage_label.add_theme_color_override("font_color", Actions.PLAYER_COLORS[player_number - 1])
 	if fighter1.is_disguised() or fighter2.is_disguised():
 		advantage_label.text = "Frame advantage: ?"
 		return
@@ -188,17 +197,18 @@ func run_until_decision():
 			break
 
 	if fighter1.hp <= 0 and fighter2.hp <= 0:
-		end_match("Double KO")
+		end_match("Double KO", Color.WHITE)
 	elif fighter1.hp <= 0:
-		end_match("P2 wins")
+		end_match("P2 wins", Actions.PLAYER_COLORS[1])
 	elif fighter2.hp <= 0:
-		end_match("P1 wins")
+		end_match("P1 wins", Actions.PLAYER_COLORS[0])
 	else:
 		ask_for_picks()
 
 
-func end_match(text):
-	hp_label.text = text
+func end_match(text, color):
+	result_label.text = text
+	result_label.add_theme_color_override("font_color", color)
 	restart_button.visible = true
 
 
