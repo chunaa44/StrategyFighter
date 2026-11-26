@@ -68,7 +68,19 @@ func on_action_pressed(_button):
 func emit_preview():
 	if action_group.get_pressed_button() == null:
 		return
+	update_title()
 	preview_changed.emit(current_player, selected_action(), wheel.get_direction_name())
+
+
+# the title repeats the selection in words, the buttons only show icons
+func update_title():
+	var action = selected_action()
+	var title = "Player " + str(current_player) + ": " + action
+	if action != "Hold":
+		title += " " + wheel.get_direction_name()
+	elif running[current_player - 1] != "none":
+		title += " keeps action"
+	title_label.text = title
 
 
 # only the players who are free or can cancel are asked, the others keep playing their action
@@ -93,11 +105,6 @@ func start_player_turn(player_number):
 	title_label.add_theme_color_override("font_color", color)
 	cover_label.text = "Player " + str(player_number) + "'s turn\nOther player look away, then press Ready"
 	cover.visible = true
-
-	var title = "Player " + str(player_number)
-	if running[player_number - 1] != "none":
-		title += "   Hold keeps current action"
-	title_label.text = title
 	reset_selection(player_number)
 
 

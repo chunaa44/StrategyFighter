@@ -4,10 +4,26 @@ const ATTACK_COLOR = Color(1.0, 0.25, 0.2)
 const GRAB_COLOR = Color(1.0, 0.65, 0.1)
 const BLUE_COLOR = Color(0.3, 0.8, 1.0)
 const IMPACT_COLOR = Color(1.0, 1.0, 1.0)
+const WHIFF_COLOR = Color(0.65, 0.65, 0.72)
 
-const GUARD_INSET = 5.0
-const GUARD_WIDTH = 6.0
+# a strike that connects is solid, one that misses is only a faint outline
+const ATTACK_FILL = 0.3
+const WHIFF_FILL = 0.06
+const WHIFF_LINE = 0.5
+const BLOCK_FILL = 0.5
+
+const BURST_FILL = 0.35
+const BURST_INSET = 14.0
+const BURST_WIDTH = 8.0
+
+const GUARD_INSET = 4.0
+const GUARD_WIDTH = 8.0
 const SPOT_INSET = 14.0
+
+const AIM_COLOR = Color(0.08, 0.08, 0.12)
+const AIM_TIP = 34.0
+const AIM_BASE = 16.0
+const AIM_HALF_WIDTH = 10.0
 
 const PREVIEW_FILL = 0.18
 const PREVIEW_LINE = 0.55
@@ -15,20 +31,26 @@ const PREVIEW_PULSE_SPEED = 6.0
 
 # marks live for one tick
 var marks = []
+# true when the current tick had a strike or grab result worth lingering on
+var result_shown = false
 # the ghost of the pick being decided, kept apart from the combat marks
 var preview = []
 var preview_time = 0.0
 
 @onready var board = $"../Board"
+@onready var fighter1 = $"../Fighter1"
+@onready var fighter2 = $"../Fighter2"
 
 
 func clear():
 	marks.clear()
 	preview.clear()
+	result_shown = false
 
 
 func clear_tick():
 	marks.clear()
+	result_shown = false
 
 
 func clear_preview():
@@ -60,8 +82,8 @@ func line_tiles(origin, aim, reach):
 	return tiles
 
 
-func add_tiles(tiles, color):
-	marks.append({"kind": "tiles", "tiles": tiles, "color": color})
+func add_tiles(tiles, color, fill_alpha = 0.4, line_alpha = 1.0):
+	marks.append({"kind": "tiles", "tiles": tiles, "color": color, "fill": fill_alpha, "line": line_alpha})
 
 
 func add_guard_mark(tile, aim, color):
@@ -89,18 +111,26 @@ func show_clash(tile1, tile2):
 	add_tiles([tile1, tile2], IMPACT_COLOR)
 
 
-# the tiles a strike or grab covered, a landed hit marks the victim, a block outlines the guard
-# called before hits clear the action
+# what a strike or grab did, called before hits clear the action
+# hit: solid tiles and a burst on the victim, blocked: solid tiles and a blue flash with the guard outlined
+# whiff: only a faint grey outline, nothing connected
 func show_result(attacker, defender, action_name, result):
 	if result == "none":
 		return
+	result_shown = true
 
 	var reach = Actions.DATA[action_name]["range"]
-	add_tiles(line_tiles(attacker.grid_position, attacker.aim, reach), action_color(action_name))
+	var tiles = line_tiles(attacker.grid_position, attacker.aim, reach)
 
+	if result == "whiff" or result == "beaten":
+		add_tiles(tiles, WHIFF_COLOR, WHIFF_FILL, WHIFF_LINE)
+		return
+
+	add_tiles(tiles, action_color(action_name), ATTACK_FILL)
 	if result == "hit":
-		add_tiles([defender.grid_position], IMPACT_COLOR)
+		marks.append({"kind": "burst", "tile": defender.grid_position, "color": action_color(action_name)})
 	elif result == "blocked":
+		add_tiles([defender.grid_position], BLUE_COLOR, BLOCK_FILL)
 		add_guard_mark(defender.grid_position, defender.aim, IMPACT_COLOR)
 
 
@@ -133,9 +163,30 @@ func _draw():
 
 	for mark in marks:
 		if mark["kind"] == "tiles":
-			draw_tiles(mark["tiles"], mark["color"])
+			draw_tiles(mark["tiles"], mark["color"], mark["fill"], mark["line"])
+		elif mark["kind"] == "burst":
+			draw_burst(mark["tile"], mark["color"])
 		else:
 			draw_guard_sides(mark["tile"], mark["aim"], mark["color"])
+
+	draw_aim(fighter1)
+	draw_aim(fighter2)
+
+
+# a pointer on the fighter showing where its action is aimed
+# hidden while a dash or lunge is still in startup, like the status text
+func draw_aim(fighter):
+	if fighter.current_action == "none" or fighter.is_disguised():
+		return
+	if fighter.aim == Vector2i(0, 0):
+		return
+
+	var direction = Vector2(fighter.aim).normalized()
+	var side = Vector2(-direction.y, direction.x)
+	var center = board.tile_to_pixel(fighter.grid_position) + Vector2(board.TILE_SIZE, board.TILE_SIZE) / 2.0
+	var tip = center + direction * AIM_TIP
+	var base = center + direction * AIM_BASE
+	draw_colored_polygon(PackedVector2Array([tip, base + side * AIM_HALF_WIDTH, base - side * AIM_HALF_WIDTH]), AIM_COLOR)
 
 
 # faint and pulsing so it never reads as something that is happening
@@ -157,6 +208,15 @@ func draw_tiles(tiles, color, fill_alpha = 0.4, line_alpha = 1.0):
 		var rect = tile_rect(tile)
 		draw_rect(rect, fill, true)
 		draw_rect(rect.grow(-3), line, false, 3.0)
+
+
+# a white flash with a cross, the unmistakable sign that something landed
+func draw_burst(tile, color):
+	var rect = tile_rect(tile)
+	draw_rect(rect, Color(1.0, 1.0, 1.0, BURST_FILL), true)
+	var inner = rect.grow(-BURST_INSET)
+	draw_line(inner.position, inner.end, color, BURST_WIDTH)
+	draw_line(Vector2(inner.end.x, inner.position.y), Vector2(inner.position.x, inner.end.y), color, BURST_WIDTH)
 
 
 # outline of where the fighter would stand

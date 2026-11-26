@@ -1,6 +1,8 @@
 extends Node2D
 
 const TICK_DELAY = 0.6
+# ticks where a strike or grab resolved last longer so the outcome can be read
+const RESULT_DELAY = 1.1
 const START_TILE_1 = Vector2i(1, 2)
 const START_TILE_2 = Vector2i(7, 2)
 
@@ -92,7 +94,10 @@ func run_until_decision():
 	while true:
 		resolve_tick()
 		refresh_view()
-		await get_tree().create_timer(TICK_DELAY).timeout
+		var delay = TICK_DELAY
+		if effects.result_shown:
+			delay = RESULT_DELAY
+		await get_tree().create_timer(delay).timeout
 		effects.clear_tick()
 		if fighter1.hp <= 0 or fighter2.hp <= 0:
 			break
