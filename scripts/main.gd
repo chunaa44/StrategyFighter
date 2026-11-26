@@ -7,6 +7,7 @@ const START_TILE_1 = Vector2i(1, 2)
 const START_TILE_2 = Vector2i(7, 2)
 
 @onready var board = $Board
+@onready var storm = $Storm
 @onready var fighter1 = $Fighter1
 @onready var fighter2 = $Fighter2
 @onready var effects = $Effects
@@ -29,6 +30,7 @@ func _ready():
 func reset_match():
 	fighter1.reset(START_TILE_1)
 	fighter2.reset(START_TILE_2)
+	storm.reset()
 	effects.clear()
 	hud.clear_advantage()
 	hud.clear_result()
@@ -48,6 +50,7 @@ func update_fighter_positions():
 func refresh_view():
 	update_fighter_positions()
 	hud.refresh(fighter1, fighter2)
+	hud.refresh_storm(storm)
 	fighter1.update_color()
 	fighter2.update_color()
 
@@ -114,12 +117,15 @@ func run_until_decision():
 		ask_for_picks()
 
 
+# the storm closes first, so moving out on the closing tick still avoids its damage
 func resolve_tick():
+	storm.advance()
 	fighter1.start_tick()
 	fighter2.start_tick()
 
 	resolve_moves()
 	resolve_hits()
+	resolve_storm()
 
 	advance_action(fighter1)
 	advance_action(fighter2)
@@ -230,12 +236,14 @@ func get_attack_result(attacker, defender):
 	return "hit"
 
 
+func take_damage(victim, amount):
+	victim.hp = maxi(victim.hp - amount, 0)
+
+
 func apply_hit(victim, action_name):
 	var data = Actions.DATA[action_name]
 
-	victim.hp -= data["damage"]
-	if victim.hp < 0:
-		victim.hp = 0
+	take_damage(victim, data["damage"])
 	victim.hitstun_ticks = data["hitstun"]
 	victim.clear_action()
 
@@ -264,3 +272,9 @@ func resolve_hits():
 		apply_hit(fighter2, action1)
 	if result2 == "hit":
 		apply_hit(fighter1, action2)
+
+
+# storm damage ignores block and does not stun or interrupt
+func resolve_storm():
+	for fighter in [fighter1, fighter2]:
+		take_damage(fighter, storm.damage_at(fighter.grid_position))

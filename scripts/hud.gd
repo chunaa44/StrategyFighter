@@ -9,6 +9,7 @@ signal restart_pressed
 @onready var advantage_label = $AdvantageLabel
 @onready var result_label = $ResultLabel
 @onready var restart_button = $RestartButton
+@onready var storm_label = $StormLabel
 
 
 func _ready():
@@ -30,6 +31,13 @@ func refresh(fighter1, fighter2):
 	p2_hp_label.text = "P2 HP: " + str(fighter2.hp)
 	p1_status_label.text = status_text("P1", fighter1)
 	p2_status_label.text = status_text("P2", fighter2)
+
+
+func refresh_storm(storm):
+	var text = "Final ring"
+	if not storm.is_final_stage():
+		text = "Ring closes in " + str(storm.ticks_until_close())
+	storm_label.text = text
 
 
 # a dash or lunge in startup shows no numbers, the length would reveal which of the two it is

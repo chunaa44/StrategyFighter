@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://b16gbhmaq0jk7" path="res://scripts/board.gd" id="3_jkv2x"]
 [ext_resource type="Script" uid="uid://cppwjj4kgs3xg" path="res://scripts/effects_layer.gd" id="3_jyhfs"]
 [ext_resource type="Script" uid="uid://bwq6ih3yot0c3" path="res://scripts/pick_screen.gd" id="3_tbgi4"]
+[ext_resource type="Script" uid="uid://bj4sl3efsyebl" path="res://scripts/storm.gd" id="4_jkv2x"]
 [ext_resource type="Texture2D" uid="uid://b8yb5wscbrvjr" path="res://assets/icons/move.png" id="5_eb6dy"]
 [ext_resource type="Texture2D" uid="uid://bnhv3brwwlrjc" path="res://assets/icons/dash.png" id="6_trceg"]
 [ext_resource type="Texture2D" uid="uid://bwma6slkgb78p" path="res://assets/icons/jab.png" id="7_a8y0u"]
@@ -73,8 +74,18 @@ offset_right = 1264.0
 offset_bottom = 376.0
 horizontal_alignment = 2
 
+[node name="StormLabel" type="Label" parent="Hud" unique_id=123740342]
+offset_left = 608.0
+offset_top = 538.0
+offset_right = 896.0
+offset_bottom = 554.0
+horizontal_alignment = 2
+
 [node name="Board" type="Node2D" parent="." unique_id=71445855]
 script = ExtResource("3_jkv2x")
+
+[node name="Storm" type="Node2D" parent="." unique_id=11982562]
+script = ExtResource("4_jkv2x")
 
 [node name="Fighter1" parent="." unique_id=237043879 instance=ExtResource("2_jyhfs")]
 
