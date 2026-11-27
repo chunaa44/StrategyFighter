@@ -14,10 +14,30 @@ const STAGES = [
 const STORM_COLOR = Color(1.0, 0.25, 0.2)
 const STORM_FILL = 0.3
 
+# tiles about to turn into storm pulse during the last ticks before the ring closes
+const WARNING_TICKS = 4
+const WARNING_MIN_FILL = 0.05
+const WARNING_PULSE_SPEED = 6.0
+
 # ticks played since the match began
 var match_tick = 0
 
+var warning_time = 0.0
+# separate canvas so the warning also shows over a fighter standing on the tile
+var warning_layer = Node2D.new()
+
 @onready var board = $"../Board"
+
+
+func _ready():
+	warning_layer.z_index = 1
+	warning_layer.draw.connect(draw_warning)
+	add_child(warning_layer)
+
+
+func _process(delta):
+	warning_time += delta
+	warning_layer.queue_redraw()
 
 
 func reset():
@@ -64,11 +84,36 @@ func damage_at(tile):
 	return current_damage()
 
 
+func is_warning():
+	return not is_final_stage() and ticks_until_close() <= WARNING_TICKS
+
+
+# safe now, storm after the next close
+func is_closing(tile):
+	var index = stage_index()
+	return safe_rect(index).has_point(tile) and not safe_rect(index + 1).has_point(tile)
+
+
+func tile_rect(tile):
+	return Rect2(board.tile_to_pixel(tile), Vector2(board.TILE_SIZE, board.TILE_SIZE))
+
+
+func draw_warning():
+	if not is_warning():
+		return
+	var wave = 0.5 + 0.5 * sin(warning_time * WARNING_PULSE_SPEED)
+	var color = Color(STORM_COLOR, lerpf(WARNING_MIN_FILL, STORM_FILL, wave))
+	for x in range(board.WIDTH):
+		for y in range(board.HEIGHT):
+			var tile = Vector2i(x, y)
+			if is_closing(tile):
+				warning_layer.draw_rect(tile_rect(tile), color, true)
+
+
 func _draw():
 	var safe = safe_rect(stage_index())
 	for x in range(board.WIDTH):
 		for y in range(board.HEIGHT):
 			var tile = Vector2i(x, y)
 			if not safe.has_point(tile):
-				var tile_size = Vector2(board.TILE_SIZE, board.TILE_SIZE)
-				draw_rect(Rect2(board.tile_to_pixel(tile), tile_size), Color(STORM_COLOR, STORM_FILL), true)
+				draw_rect(tile_rect(tile), Color(STORM_COLOR, STORM_FILL), true)
