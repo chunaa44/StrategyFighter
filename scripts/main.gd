@@ -102,8 +102,10 @@ func run_until_decision():
 			delay = RESULT_DELAY
 		await get_tree().create_timer(delay).timeout
 		effects.clear_tick()
+		# the last tick of a match stays on screen as it was
 		if fighter1.hp <= 0 or fighter2.hp <= 0:
 			break
+		end_tick()
 		if needs_decision():
 			break
 
@@ -115,6 +117,12 @@ func run_until_decision():
 		hud.show_result("P1 wins", Actions.PLAYER_COLORS[0])
 	else:
 		ask_for_picks()
+
+
+func end_tick():
+	fighter1.end_tick()
+	fighter2.end_tick()
+	refresh_view()
 
 
 # the storm closes first, so moving out on the closing tick still avoids its damage
@@ -135,8 +143,6 @@ func advance_action(fighter):
 	if fighter.current_action == "none":
 		return
 	fighter.action_tick += 1
-	if fighter.action_tick >= Actions.total_ticks(fighter.current_action):
-		fighter.clear_action()
 
 
 # where a fighter ends up if it slides this tick

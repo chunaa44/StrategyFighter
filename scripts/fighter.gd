@@ -10,6 +10,8 @@ var hp = START_HP
 var grid_position = Vector2i(0, 1)
 var hitstun_ticks = 0
 var stunned = false
+# true while the result of a tick is on screen
+var playing = false
 var current_action = "none"
 var action_tick = 0
 var aim = Vector2i(0, 0)
@@ -39,6 +41,7 @@ func reset(start_tile):
 	grid_position = start_tile
 	hitstun_ticks = 0
 	stunned = false
+	playing = false
 	aim = Vector2i(0, 0)
 	clear_action()
 	update_color()
@@ -52,9 +55,9 @@ func ticks_until_free():
 	return maxi(action_wait, hitstun_ticks)
 
 
-# dash and lunge look the same until they become active, so their length stays secret
+# dash and lunge look the same until their active tick has played, so their length stays secret
 func is_disguised():
-	return Actions.is_rush(current_action) and action_tick < Actions.DATA[current_action]["startup"]
+	return Actions.is_rush(current_action) and action_tick <= Actions.DATA[current_action]["startup"]
 
 
 # nothing going on and not stunned, a new action has to be chosen
@@ -75,11 +78,20 @@ func can_decide():
 
 
 func start_tick():
+	playing = true
 	if hitstun_ticks > 0:
 		stunned = true
 		hitstun_ticks -= 1
 	else:
 		stunned = false
+
+
+# runs once the tick has been shown, a finished action stays visible until then
+func end_tick():
+	playing = false
+	stunned = false
+	if current_action != "none" and action_tick >= Actions.total_ticks(current_action):
+		clear_action()
 
 
 func is_hurt():
@@ -113,12 +125,29 @@ func is_guarding():
 	return current_action == "Block" and in_active_frames()
 
 
+# the tick the visuals describe: the one on screen during playback, the next one otherwise
+func shown_tick():
+	if playing:
+		return action_tick - 1
+	return action_tick
+
+
+# "Startup", "Active" or "Recovery" for the shown tick, empty without an action
+func phase_name():
+	if current_action == "none":
+		return ""
+	var data = Actions.DATA[current_action]
+	var tick = shown_tick()
+	if tick < data["startup"]:
+		return "Startup"
+	if tick < data["startup"] + data["active"]:
+		return "Active"
+	return "Recovery"
+
+
 # the action is past its active frames and only has to finish
 func in_recovery():
-	if current_action == "none" or current_action == "Hold":
-		return false
-	var data = Actions.DATA[current_action]
-	return action_tick >= data["startup"] + data["active"]
+	return phase_name() == "Recovery"
 
 
 # stunned colour is animated in _process, darker while recovering, team colour otherwise

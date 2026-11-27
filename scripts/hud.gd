@@ -40,30 +40,30 @@ func refresh_storm(storm):
 	storm_label.text = text
 
 
-# a dash or lunge in startup shows no numbers, the length would reveal which of the two it is
+# a disguised rush shows no numbers, the length would reveal which of the two it is
+# between ticks the phase belongs to the tick that has not played yet and is marked as next
 func status_text(title, fighter):
 	var text = title + "\n"
 	if fighter.hitstun_ticks > 0:
 		return text + "Stunned " + str(fighter.hitstun_ticks)
+	if fighter.stunned:
+		return text + "Stunned"
 	if fighter.current_action == "none":
 		return text + "Free"
-	if fighter.is_disguised():
-		return text + "Rush ?/?\nStartup"
 
-	var action = fighter.current_action
-	text += action + " " + str(fighter.action_tick) + "/" + str(Actions.total_ticks(action)) + "\n"
-	if fighter.in_active_frames():
-		text += "Active"
-	elif fighter.in_recovery():
-		text += "Recovery"
+	if fighter.is_disguised():
+		text += "Rush ?/?\n"
 	else:
-		text += "Startup"
-	return text
+		text += fighter.current_action + " " + str(fighter.action_tick) + "/" + str(Actions.total_ticks(fighter.current_action)) + "\n"
+
+	if not fighter.playing:
+		text += "Next:\n"
+	return text + fighter.phase_name()
 
 
 # frame advantage from the point of view of the player choosing
 # positive means that player can start the next action that many ticks before the opponent
-# a dash or lunge in startup hides it, the length would reveal which of the two it is
+# a disguised rush hides it, the length would reveal which of the two it is
 func show_advantage(player_number, fighter1, fighter2):
 	advantage_label.add_theme_color_override("font_color", Actions.PLAYER_COLORS[player_number - 1])
 	if fighter1.is_disguised() or fighter2.is_disguised():
