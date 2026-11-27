@@ -272,7 +272,14 @@ func apply_hit(victim, action_name):
 	victim.clear_action()
 
 
+# a blocked strike hurts the attacker, who keeps their action and recovery
+func apply_reflect(attacker, action_name):
+	var lost = take_damage(attacker, Actions.DATA[action_name]["reflect"])
+	effects.show_hit_damage(attacker.grid_position, lost)
+
+
 # one line for the result log, called before hits change hp or clear actions
+# lines have to stay under about 25 characters to fit between the hp labels
 func describe_result(attacker_title, defender_title, attacker, defender, result):
 	var action = attacker.current_action
 	var attack = attacker_title + " " + action
@@ -282,7 +289,8 @@ func describe_result(attacker_title, defender_title, attacker, defender, result)
 	if result == "beaten":
 		return attack + " was beaten"
 	if result == "blocked":
-		return defender_title + " blocked " + attack
+		var reflected = mini(Actions.DATA[action]["reflect"], attacker.hp)
+		return attack + " reflected -" + str(reflected)
 
 	var lost = mini(Actions.DATA[action]["damage"], defender.hp)
 	if action == "Grab" and defender.is_guarding():
@@ -319,6 +327,11 @@ func resolve_hits():
 		apply_hit(fighter2, action1)
 	if result2 == "hit":
 		apply_hit(fighter1, action2)
+
+	if result1 == "blocked":
+		apply_reflect(fighter1, action1)
+	if result2 == "blocked":
+		apply_reflect(fighter2, action2)
 
 
 # storm damage ignores block and does not stun or interrupt

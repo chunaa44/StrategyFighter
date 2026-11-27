@@ -19,19 +19,20 @@ const DIRECTION_VECTORS = [
 # damage in hp, slide and range in tiles, everything else in ticks
 # slide: tiles travelled along the aim on the active tick, it stops next to the opponent
 # range: how far the hit reaches from where the fighter stands after sliding
+# reflect: hp the attacker loses when a strike is blocked, 0 for everything that cannot be blocked
 # cancel: the fighter chooses again while fewer than this many ticks of the action have played
 #   Hold keeps the action going, any other pick replaces it, 0 means no cancel window
 # total length of an action = startup + active + recovery
 # hit advantage = hitstun - recovery: positive means the attacker is free first
 #   +2 or more guarantees a Jab follow-up, so Jab stays at +1 to keep it from chaining into itself
 const DATA = {
-	"Move": {"damage": 0, "hitstun": 0, "range": 0, "slide": 1, "startup": 0, "active": 1, "recovery": 1, "cancel": 0},
-	"Dash": {"damage": 0, "hitstun": 0, "range": 0, "slide": 2, "startup": 2, "active": 1, "recovery": 1, "cancel": 2},
-	"Jab": {"damage": 15, "hitstun": 2, "range": 2, "slide": 0, "startup": 1, "active": 1, "recovery": 1, "cancel": 0},
-	"Lunge": {"damage": 40, "hitstun": 6, "range": 1, "slide": 3, "startup": 2, "active": 1, "recovery": 4, "cancel": 2},
-	"Block": {"damage": 0, "hitstun": 0, "range": 0, "slide": 0, "startup": 1, "active": 2, "recovery": 1, "cancel": 0},
-	"Grab": {"damage": 30, "hitstun": 5, "range": 1, "slide": 0, "startup": 2, "active": 1, "recovery": 3, "cancel": 2},
-	"Hold": {"damage": 0, "hitstun": 0, "range": 0, "slide": 0, "startup": 0, "active": 2, "recovery": 0, "cancel": 0},
+	"Move": {"damage": 0, "hitstun": 0, "range": 0, "reflect": 0, "slide": 1, "startup": 0, "active": 1, "recovery": 1, "cancel": 0},
+	"Dash": {"damage": 0, "hitstun": 0, "range": 0, "reflect": 0, "slide": 2, "startup": 2, "active": 1, "recovery": 1, "cancel": 2},
+	"Jab": {"damage": 15, "hitstun": 2, "range": 2, "reflect": 8, "slide": 0, "startup": 1, "active": 1, "recovery": 1, "cancel": 0},
+	"Lunge": {"damage": 40, "hitstun": 6, "range": 1, "reflect": 20, "slide": 3, "startup": 2, "active": 1, "recovery": 4, "cancel": 2},
+	"Block": {"damage": 0, "hitstun": 0, "range": 0, "reflect": 0, "slide": 0, "startup": 1, "active": 2, "recovery": 1, "cancel": 0},
+	"Grab": {"damage": 30, "hitstun": 5, "range": 1, "reflect": 0, "slide": 0, "startup": 2, "active": 1, "recovery": 3, "cancel": 2},
+	"Hold": {"damage": 0, "hitstun": 0, "range": 0, "reflect": 0, "slide": 0, "startup": 0, "active": 2, "recovery": 0, "cancel": 0},
 }
 
 
