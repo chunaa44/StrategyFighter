@@ -13,8 +13,6 @@ const WHIFF_LINE = 0.5
 const BLOCK_FILL = 0.5
 
 const BURST_FILL = 0.35
-const BURST_INSET = 14.0
-const BURST_WIDTH = 8.0
 
 const GUARD_INSET = 4.0
 const GUARD_WIDTH = 8.0
@@ -29,6 +27,18 @@ const PREVIEW_FILL = 0.18
 const PREVIEW_LINE = 0.55
 const PREVIEW_PULSE_SPEED = 6.0
 
+const DAMAGE_FONT = preload("res://assets/fonts/PressStart2P-Regular.ttf")
+const HIT_TEXT_COLOR = Color(1.0, 1.0, 1.0)
+const HIT_TEXT_SIZE = 24
+const HIT_TEXT_HEIGHT = 60.0
+const STORM_TEXT_COLOR = Color(1.0, 0.7, 0.65)
+const STORM_TEXT_SIZE = 16
+const STORM_TEXT_HEIGHT = 84.0
+const TEXT_OUTLINE_COLOR = Color(0.05, 0.05, 0.08)
+const TEXT_OUTLINE = 8
+const TEXT_RISE = 16.0
+const TEXT_RISE_TIME = 0.25
+
 # marks live for one tick
 var marks = []
 # true when the current tick had a strike or grab result worth lingering on
@@ -36,6 +46,10 @@ var result_shown = false
 # the ghost of the pick being decided, kept apart from the combat marks
 var preview = []
 var preview_time = 0.0
+# the fighter whose current action the preview would replace
+var replaced_fighter = null
+# damage numbers stay until the next tick, so they are still there while picking
+var damage_texts = []
 
 @onready var board = $"../Board"
 @onready var fighter1 = $"../Fighter1"
@@ -44,7 +58,8 @@ var preview_time = 0.0
 
 func clear():
 	marks.clear()
-	preview.clear()
+	clear_preview()
+	clear_damage()
 	result_shown = false
 
 
@@ -55,10 +70,17 @@ func clear_tick():
 
 func clear_preview():
 	preview.clear()
+	replaced_fighter = null
+
+
+func clear_damage():
+	damage_texts.clear()
 
 
 func _process(delta):
 	preview_time += delta
+	for text in damage_texts:
+		text["age"] += delta
 	queue_redraw()
 
 
@@ -96,6 +118,19 @@ func show_guard(fighter):
 		add_guard_mark(fighter.grid_position, fighter.aim, BLUE_COLOR)
 
 
+func add_damage_text(tile, amount, color, font_size, height):
+	damage_texts.append({"tile": tile, "text": "-" + str(amount), "color": color, "size": font_size, "height": height, "age": 0.0})
+
+
+func show_hit_damage(tile, amount):
+	add_damage_text(tile, amount, HIT_TEXT_COLOR, HIT_TEXT_SIZE, HIT_TEXT_HEIGHT)
+
+
+# smaller and lower than a hit, both can happen on one tile in the same tick
+func show_storm_damage(tile, amount):
+	add_damage_text(tile, amount, STORM_TEXT_COLOR, STORM_TEXT_SIZE, STORM_TEXT_HEIGHT)
+
+
 # the tiles a dash or lunge travelled over on its active tick
 func show_slide(from_tile, to_tile, action_name):
 	if from_tile == to_tile:
@@ -112,7 +147,7 @@ func show_clash(tile1, tile2):
 
 
 # what a strike or grab did, called before hits clear the action
-# hit: solid tiles and a burst on the victim, blocked: solid tiles and a blue flash with the guard outlined
+# hit: solid tiles and a white flash on the victim, blocked: solid tiles and a blue flash with the guard outlined
 # whiff: only a faint grey outline, nothing connected
 func show_result(attacker, defender, action_name, result):
 	if result == "none":
@@ -128,7 +163,7 @@ func show_result(attacker, defender, action_name, result):
 
 	add_tiles(tiles, action_color(action_name), ATTACK_FILL)
 	if result == "hit":
-		marks.append({"kind": "burst", "tile": defender.grid_position, "color": action_color(action_name)})
+		marks.append({"kind": "burst", "tile": defender.grid_position})
 	elif result == "blocked":
 		add_tiles([defender.grid_position], BLUE_COLOR, BLOCK_FILL)
 		add_guard_mark(defender.grid_position, defender.aim, IMPACT_COLOR)
@@ -137,11 +172,12 @@ func show_result(attacker, defender, action_name, result):
 # ghost of a pick that has not been confirmed yet, drawn from where the fighter stands
 # a rush looks the same whether it is a dash or a lunge, only the strike tile tells them apart
 func show_preview(fighter, other, action_name, aim):
-	preview.clear()
+	clear_preview()
 	var start = fighter.grid_position
 
 	if action_name == "Hold":
 		return
+	replaced_fighter = fighter
 
 	if action_name == "Block":
 		preview.append({"kind": "guard", "tile": start, "aim": aim, "color": BLUE_COLOR})
@@ -165,12 +201,34 @@ func _draw():
 		if mark["kind"] == "tiles":
 			draw_tiles(mark["tiles"], mark["color"], mark["fill"], mark["line"])
 		elif mark["kind"] == "burst":
-			draw_burst(mark["tile"], mark["color"])
+			draw_burst(mark["tile"])
 		else:
 			draw_guard_sides(mark["tile"], mark["aim"], mark["color"])
 
+	draw_standing_guard(fighter1)
+	draw_standing_guard(fighter2)
 	draw_aim(fighter1)
 	draw_aim(fighter2)
+	draw_damage_texts()
+
+
+# between ticks a block that will be up on the next tick stays outlined
+# during playback the tick marks cover it
+func draw_standing_guard(fighter):
+	if fighter.playing or fighter == replaced_fighter:
+		return
+	if fighter.current_action == "Block" and fighter.phase_name() == "Active":
+		draw_guard_sides(fighter.grid_position, fighter.aim, BLUE_COLOR)
+
+
+# numbers pop up into place and then hold still
+func draw_damage_texts():
+	for text in damage_texts:
+		var progress = minf(text["age"] / TEXT_RISE_TIME, 1.0)
+		var drop = TEXT_RISE * (1.0 - progress)
+		var origin = board.tile_to_pixel(text["tile"]) + Vector2(0, text["height"] + drop)
+		draw_string_outline(DAMAGE_FONT, origin, text["text"], HORIZONTAL_ALIGNMENT_CENTER, board.TILE_SIZE, text["size"], TEXT_OUTLINE, TEXT_OUTLINE_COLOR)
+		draw_string(DAMAGE_FONT, origin, text["text"], HORIZONTAL_ALIGNMENT_CENTER, board.TILE_SIZE, text["size"], text["color"])
 
 
 # a pointer on the fighter showing where its action is aimed
@@ -210,13 +268,9 @@ func draw_tiles(tiles, color, fill_alpha = 0.4, line_alpha = 1.0):
 		draw_rect(rect.grow(-3), line, false, 3.0)
 
 
-# a white flash with a cross, the unmistakable sign that something landed
-func draw_burst(tile, color):
-	var rect = tile_rect(tile)
-	draw_rect(rect, Color(1.0, 1.0, 1.0, BURST_FILL), true)
-	var inner = rect.grow(-BURST_INSET)
-	draw_line(inner.position, inner.end, color, BURST_WIDTH)
-	draw_line(Vector2(inner.end.x, inner.position.y), Vector2(inner.position.x, inner.end.y), color, BURST_WIDTH)
+# a white flash on whoever was hit, the damage number sits on top of it
+func draw_burst(tile):
+	draw_rect(tile_rect(tile), Color(1.0, 1.0, 1.0, BURST_FILL), true)
 
 
 # outline of where the fighter would stand

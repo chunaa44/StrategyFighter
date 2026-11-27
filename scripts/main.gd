@@ -13,6 +13,10 @@ const START_TILE_2 = Vector2i(7, 2)
 @onready var effects = $Effects
 @onready var hud = $Hud
 
+# what happened on the current tick, in words
+var tick_log = []
+var clashed = false
+
 
 func _ready():
 	fighter1.set_color(Actions.PLAYER_COLORS[0])
@@ -34,6 +38,7 @@ func reset_match():
 	effects.clear()
 	hud.clear_advantage()
 	hud.clear_result()
+	hud.clear_log()
 	refresh_view()
 
 
@@ -127,6 +132,9 @@ func end_tick():
 
 # the storm closes first, so moving out on the closing tick still avoids its damage
 func resolve_tick():
+	tick_log.clear()
+	clashed = false
+	effects.clear_damage()
 	storm.advance()
 	fighter1.start_tick()
 	fighter2.start_tick()
@@ -137,6 +145,11 @@ func resolve_tick():
 
 	advance_action(fighter1)
 	advance_action(fighter2)
+
+	# the label holds two lines, attack results come before a clash
+	if clashed and tick_log.size() < 2:
+		tick_log.push_front("Paths clashed")
+	hud.show_log(tick_log)
 
 
 func advance_action(fighter):
@@ -184,6 +197,7 @@ func resolve_moves():
 
 	if paths_clash(start1, target1, start2, target2):
 		effects.show_clash(start1, start2)
+		clashed = true
 		target1 = start1
 		target2 = start2
 
@@ -242,16 +256,38 @@ func get_attack_result(attacker, defender):
 	return "hit"
 
 
+# returns the hp actually lost
 func take_damage(victim, amount):
+	var before = victim.hp
 	victim.hp = maxi(victim.hp - amount, 0)
+	return before - victim.hp
 
 
 func apply_hit(victim, action_name):
 	var data = Actions.DATA[action_name]
 
-	take_damage(victim, data["damage"])
+	var lost = take_damage(victim, data["damage"])
+	effects.show_hit_damage(victim.grid_position, lost)
 	victim.hitstun_ticks = data["hitstun"]
 	victim.clear_action()
+
+
+# one line for the result log, called before hits change hp or clear actions
+func describe_result(attacker_title, defender_title, attacker, defender, result):
+	var action = attacker.current_action
+	var attack = attacker_title + " " + action
+
+	if result == "whiff":
+		return attack + " missed"
+	if result == "beaten":
+		return attack + " was beaten"
+	if result == "blocked":
+		return defender_title + " blocked " + attack
+
+	var lost = mini(Actions.DATA[action]["damage"], defender.hp)
+	if action == "Grab" and defender.is_guarding():
+		return attack + " broke block -" + str(lost)
+	return attack + " hit " + defender_title + " -" + str(lost)
 
 
 func resolve_hits():
@@ -274,6 +310,11 @@ func resolve_hits():
 	effects.show_result(fighter1, fighter2, action1, result1)
 	effects.show_result(fighter2, fighter1, action2, result2)
 
+	if result1 != "none":
+		tick_log.append(describe_result("P1", "P2", fighter1, fighter2, result1))
+	if result2 != "none":
+		tick_log.append(describe_result("P2", "P1", fighter2, fighter1, result2))
+
 	if result1 == "hit":
 		apply_hit(fighter2, action1)
 	if result2 == "hit":
@@ -283,4 +324,6 @@ func resolve_hits():
 # storm damage ignores block and does not stun or interrupt
 func resolve_storm():
 	for fighter in [fighter1, fighter2]:
-		take_damage(fighter, storm.damage_at(fighter.grid_position))
+		var lost = take_damage(fighter, storm.damage_at(fighter.grid_position))
+		if lost > 0:
+			effects.show_storm_damage(fighter.grid_position, lost)

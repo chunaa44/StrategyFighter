@@ -41,9 +41,9 @@ horizontal_alignment = 1
 
 [node name="ResultLabel" type="Label" parent="Hud" unique_id=499771258]
 offset_left = 472.0
-offset_top = 8.0
+offset_top = 566.0
 offset_right = 808.0
-offset_bottom = 44.0
+offset_bottom = 602.0
 theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
 
@@ -80,6 +80,13 @@ offset_top = 538.0
 offset_right = 896.0
 offset_bottom = 554.0
 horizontal_alignment = 2
+
+[node name="LastResultLabel" type="Label" parent="Hud" unique_id=1253797282]
+offset_left = 440.0
+offset_top = 6.0
+offset_right = 840.0
+offset_bottom = 46.0
+horizontal_alignment = 1
 
 [node name="Board" type="Node2D" parent="." unique_id=71445855]
 script = ExtResource("3_jkv2x")

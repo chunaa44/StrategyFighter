@@ -2,6 +2,9 @@ extends Node2D
 
 signal restart_pressed
 
+# opacity of a result that is more than one tick old
+const OLD_LOG_ALPHA = 0.45
+
 @onready var p1_hp_label = $P1HpLabel
 @onready var p2_hp_label = $P2HpLabel
 @onready var p1_status_label = $P1StatusLabel
@@ -10,6 +13,7 @@ signal restart_pressed
 @onready var result_label = $ResultLabel
 @onready var restart_button = $RestartButton
 @onready var storm_label = $StormLabel
+@onready var last_result_label = $LastResultLabel
 
 
 func _ready():
@@ -38,6 +42,19 @@ func refresh_storm(storm):
 	if not storm.is_final_stage():
 		text = "Ring closes in " + str(storm.ticks_until_close())
 	storm_label.text = text
+
+
+# a tick without news keeps the previous result, faded so it reads as old
+func show_log(lines):
+	if lines.is_empty():
+		last_result_label.modulate.a = OLD_LOG_ALPHA
+		return
+	last_result_label.text = "\n".join(lines)
+	last_result_label.modulate.a = 1.0
+
+
+func clear_log():
+	last_result_label.text = ""
 
 
 # a disguised rush shows no numbers, the length would reveal which of the two it is
