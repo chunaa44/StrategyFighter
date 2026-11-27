@@ -79,7 +79,7 @@ func update_title():
 	if action != "Hold":
 		title += " " + wheel.get_direction_name()
 	elif running[current_player - 1] != "none":
-		title += " keeps action"
+		title += " keeps " + running[current_player - 1]
 	title_label.text = title
 
 
@@ -97,7 +97,6 @@ func begin_picks(need1, need2, action1, action2):
 
 
 # the cover goes up first so nothing of the previous pick is visible
-# the title never names the running action, the other player sits at the same screen
 func start_player_turn(player_number):
 	current_player = player_number
 	var color = Actions.PLAYER_COLORS[player_number - 1]

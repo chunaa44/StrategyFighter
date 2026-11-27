@@ -59,12 +59,13 @@ func clear_log():
 
 # a disguised rush shows no numbers, the length would reveal which of the two it is
 # between ticks the phase belongs to the tick that has not played yet and is marked as next
+# stun shows the ticks still to play, so the last stun tick reads 0
 func status_text(title, fighter):
 	var text = title + "\n"
 	if fighter.hitstun_ticks > 0:
 		return text + "Stunned " + str(fighter.hitstun_ticks)
 	if fighter.stunned:
-		return text + "Stunned"
+		return text + "Stunned 0"
 	if fighter.current_action == "none":
 		return text + "Free"
 
