@@ -11,19 +11,19 @@ config_version=5
 [application]
 
 config/name="StrategyFighter"
-run/main_scene="uid://cchya1d8rbmev"
+run/main_scene="uid://lhtpsh7yl4a2"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Actions="*uid://b2qt6kl4nwmjd"
+Network="*uid://cod3vrjmh3cqh"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
-window/size/mode=3
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

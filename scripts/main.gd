@@ -23,6 +23,7 @@ func _ready():
 	fighter2.set_color(Actions.PLAYER_COLORS[1])
 
 	hud.restart_pressed.connect(on_restart_pressed)
+	Network.restart_received.connect(restart_match)
 	$PickScreen.both_picked.connect(on_both_picked)
 	$PickScreen.preview_changed.connect(on_preview_changed)
 	$PickScreen.preview_cleared.connect(effects.clear_preview)
@@ -43,6 +44,12 @@ func reset_match():
 
 
 func on_restart_pressed():
+	if Network.is_online():
+		Network.send_restart()
+	restart_match()
+
+
+func restart_match():
 	reset_match()
 	ask_for_picks()
 

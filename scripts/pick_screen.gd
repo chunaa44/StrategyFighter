@@ -10,6 +10,8 @@ var pick2 = {}
 var needs = [true, true]
 # action each player is in the middle of, "none" when free
 var running = ["none", "none"]
+# online only: the local pick is sent, the opponent's is still missing
+var waiting = false
 
 @onready var title_label = $Box/TitleLabel
 @onready var confirm_button = $Box/ConfirmButton
@@ -29,6 +31,7 @@ func _ready():
 	ready_button.pressed.connect(on_ready_pressed)
 	wheel.direction_changed.connect(emit_preview)
 	action_group.pressed.connect(on_action_pressed)
+	Network.pick_received.connect(on_opponent_pick)
 
 
 func make_tooltip(option):
@@ -66,7 +69,7 @@ func on_action_pressed(_button):
 
 # the board shows a ghost of whatever is currently selected for the player choosing
 func emit_preview():
-	if action_group.get_pressed_button() == null:
+	if waiting or action_group.get_pressed_button() == null:
 		return
 	update_title()
 	preview_changed.emit(current_player, selected_action(), wheel.get_direction_name())
@@ -89,11 +92,54 @@ func begin_picks(need1, need2, action1, action2):
 	running = [action1, action2]
 	pick1 = {}
 	pick2 = {}
+	waiting = false
+	confirm_button.disabled = false
 	visible = true
-	if need1:
+	if Network.is_online():
+		begin_online_picks()
+	elif need1:
 		start_player_turn(1)
 	else:
 		start_player_turn(2)
+
+
+# every player picks on their own screen, so there is no cover
+# a player who is not asked goes straight to waiting
+func begin_online_picks():
+	current_player = Network.my_player
+	title_label.add_theme_color_override("font_color", Actions.PLAYER_COLORS[current_player - 1])
+	cover.visible = false
+	if needs[current_player - 1]:
+		reset_selection(current_player)
+	else:
+		start_waiting()
+
+
+func start_waiting():
+	waiting = true
+	confirm_button.disabled = true
+	title_label.text = "Waiting for opponent..."
+	preview_cleared.emit()
+	try_finish_online()
+
+
+func on_opponent_pick():
+	if waiting:
+		try_finish_online()
+
+
+# done once the opponent's pick is in, or right away when the opponent is not asked
+func try_finish_online():
+	var opponent = 3 - Network.my_player
+	if needs[opponent - 1]:
+		if not Network.opponent_pick_ready:
+			return
+		var pick = Network.take_opponent_pick()
+		if opponent == 1:
+			pick1 = pick
+		else:
+			pick2 = pick
+	finish_picks()
 
 
 # the cover goes up first so nothing of the previous pick is visible
@@ -113,6 +159,7 @@ func on_ready_pressed():
 
 # a CanvasLayer ignores the parent's visibility, so the cover is hidden here as well
 func finish_picks():
+	waiting = false
 	visible = false
 	cover.visible = false
 	preview_cleared.emit()
@@ -124,6 +171,10 @@ func on_confirm_pressed():
 	pick["action"] = selected_action()
 	pick["wheel"] = wheel.get_direction_name()
 
+	if Network.is_online():
+		confirm_online(pick)
+		return
+
 	if current_player == 1:
 		pick1 = pick
 		if needs[1]:
@@ -133,3 +184,12 @@ func on_confirm_pressed():
 	else:
 		pick2 = pick
 		finish_picks()
+
+
+func confirm_online(pick):
+	Network.send_pick(pick)
+	if Network.my_player == 1:
+		pick1 = pick
+	else:
+		pick2 = pick
+	start_waiting()

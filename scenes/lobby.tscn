@@ -1,0 +1,88 @@
+[gd_scene format=3 uid="uid://lhtpsh7yl4a2"]
+
+[ext_resource type="Script" uid="uid://co0rt4r0w24o5" path="res://scripts/lobby.gd" id="1_o1atq"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m3mo6"]
+bg_color = Color(0.16470589, 0.16470589, 0.22745098, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.8509804, 0.8509804, 0.9019608, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+expand_margin_left = 32.0
+expand_margin_top = 32.0
+expand_margin_right = 32.0
+expand_margin_bottom = 32.0
+
+[node name="Lobby" type="Control" unique_id=32067171]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_o1atq")
+
+[node name="Center" type="CenterContainer" parent="." unique_id=519464448]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="Center" unique_id=2016849637]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_m3mo6")
+
+[node name="Box" type="VBoxContainer" parent="Center/Card" unique_id=1590462792]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="Center/Card/Box" unique_id=2129036293]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.7490196, 0.2, 1)
+theme_override_font_sizes/font_size = 32
+text = "STRATEGY FIGHTER"
+horizontal_alignment = 1
+
+[node name="HostButton" type="Button" parent="Center/Card/Box" unique_id=1973612666]
+custom_minimum_size = Vector2(400, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Host online game"
+
+[node name="IpEdit" type="LineEdit" parent="Center/Card/Box" unique_id=123167066]
+custom_minimum_size = Vector2(400, 48)
+layout_mode = 2
+theme_override_colors/font_placeholder_color = Color(0.7019608, 0.7019608, 0.78039217, 1)
+theme_override_font_sizes/font_size = 16
+text = "Host IP, e.g. 192.168.1.5"
+alignment = 1
+
+[node name="JoinButton" type="Button" parent="Center/Card/Box" unique_id=879073586]
+custom_minimum_size = Vector2(400, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Join online game"
+
+[node name="HSeparator" type="HSeparator" parent="Center/Card/Box" unique_id=398505890]
+layout_mode = 2
+
+[node name="LocalButton" type="Button" parent="Center/Card/Box" unique_id=251283550]
+custom_minimum_size = Vector2(400, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Play on this computer"
+
+[node name="StatusLabel" type="Label" parent="Center/Card/Box" unique_id=2011587542]
+custom_minimum_size = Vector2(400, 96)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.7490196, 0.2, 1)
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+autowrap_mode = 3
